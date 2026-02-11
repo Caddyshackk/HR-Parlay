@@ -1,0 +1,159 @@
+// MLB Stats API Integration
+// Free API: https://statsapi.mlb.com/
+
+class MLBApi {
+    constructor() {
+        this.baseUrl = 'https://statsapi.mlb.com/api/v1';
+        this.scheduleUrl = 'https://statsapi.mlb.com/api/v1/schedule';
+    }
+
+    // Get today's games
+    async getTodaysGames() {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const url = `${this.scheduleUrl}?sportId=1&date=${today}&hydrate=team,linescore,probablePitcher(stats(type=season))`;
+            
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            if (data.dates && data.dates.length > 0) {
+                return data.dates[0].games;
+            }
+            
+            // Return mock data if no games found (off-season, etc.)
+            return this.getMockGames();
+        } catch (error) {
+            console.error('Error fetching games:', error);
+            return this.getMockGames();
+        }
+    }
+
+    // Get player stats
+    async getPlayerStats(playerId, season = new Date().getFullYear()) {
+        try {
+            const url = `${this.baseUrl}/people/${playerId}?hydrate=stats(group=[hitting],type=[career,season],season=${season})`;
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            if (data.people && data.people.length > 0) {
+                return data.people[0];
+            }
+            return null;
+        } catch (error) {
+            console.error('Error fetching player stats:', error);
+            return null;
+        }
+    }
+
+    // Get team roster with HR stats
+    async getTeamRoster(teamId) {
+        try {
+            const url = `${this.baseUrl}/teams/${teamId}/roster?hydrate=person(stats(type=season,group=hitting))`;
+            const response = await fetch(url);
+            const data = await response.json();
+            return data.roster || [];
+        } catch (error) {
+            console.error('Error fetching roster:', error);
+            return [];
+        }
+    }
+
+    // Mock data for testing/demo purposes
+    getMockGames() {
+        return [
+            {
+                gamePk: 1,
+                gameDate: new Date().toISOString(),
+                teams: {
+                    away: {
+                        team: { id: 109, name: 'Arizona Diamondbacks', abbreviation: 'ARI' },
+                        score: 0
+                    },
+                    home: {
+                        team: { id: 113, name: 'Cincinnati Reds', abbreviation: 'CIN' },
+                        score: 0
+                    }
+                },
+                venue: { name: 'Great American Ball Park' },
+                status: { detailedState: 'Preview' }
+            },
+            {
+                gamePk: 2,
+                gameDate: new Date().toISOString(),
+                teams: {
+                    away: {
+                        team: { id: 137, name: 'San Francisco Giants', abbreviation: 'SF' },
+                        score: 0
+                    },
+                    home: {
+                        team: { id: 147, name: 'New York Yankees', abbreviation: 'NYY' },
+                        score: 0
+                    }
+                },
+                venue: { name: 'Yankee Stadium' },
+                status: { detailedState: 'Preview' }
+            },
+            {
+                gamePk: 3,
+                gameDate: new Date().toISOString(),
+                teams: {
+                    away: {
+                        team: { id: 110, name: 'Baltimore Orioles', abbreviation: 'BAL' },
+                        score: 0
+                    },
+                    home: {
+                        team: { id: 108, name: 'Los Angeles Angels', abbreviation: 'LAA' },
+                        score: 0
+                    }
+                },
+                venue: { name: 'Angel Stadium' },
+                status: { detailedState: 'Preview' }
+            }
+        ];
+    }
+
+    // Mock top HR hitters for demo
+    getMockTopHitters(teamAbbr) {
+        const hitters = {
+            'CIN': [
+                { id: 1, name: 'Elly De La Cruz', seasonHRs: 25, last7HRs: 3, avg: '.265' },
+                { id: 2, name: 'Tyler Stephenson', seasonHRs: 19, last7HRs: 1, avg: '.272' },
+                { id: 3, name: 'Spencer Steer', seasonHRs: 20, last7HRs: 2, avg: '.248' }
+            ],
+            'ARI': [
+                { id: 4, name: 'Lourdes Gurriel Jr.', seasonHRs: 18, last7HRs: 2, avg: '.261' },
+                { id: 5, name: 'Corbin Carroll', seasonHRs: 22, last7HRs: 1, avg: '.254' },
+                { id: 6, name: 'Christian Walker', seasonHRs: 33, last7HRs: 2, avg: '.251' }
+            ],
+            'NYY': [
+                { id: 7, name: 'Aaron Judge', seasonHRs: 58, last7HRs: 4, avg: '.322' },
+                { id: 8, name: 'Juan Soto', seasonHRs: 41, last7HRs: 3, avg: '.288' },
+                { id: 9, name: 'Anthony Rizzo', seasonHRs: 19, last7HRs: 1, avg: '.243' }
+            ],
+            'SF': [
+                { id: 10, name: 'Heliot Ramos', seasonHRs: 22, last7HRs: 1, avg: '.269' },
+                { id: 11, name: 'Matt Chapman', seasonHRs: 24, last7HRs: 2, avg: '.247' },
+                { id: 12, name: 'Tyler Fitzgerald', seasonHRs: 15, last7HRs: 1, avg: '.229' }
+            ],
+            'BAL': [
+                { id: 13, name: 'Gunnar Henderson', seasonHRs: 37, last7HRs: 2, avg: '.281' },
+                { id: 14, name: 'Adley Rutschman', seasonHRs: 19, last7HRs: 1, avg: '.250' },
+                { id: 15, name: 'Ryan Mountcastle', seasonHRs: 13, last7HRs: 0, avg: '.271' }
+            ],
+            'LAA': [
+                { id: 16, name: 'Taylor Ward', seasonHRs: 25, last7HRs: 2, avg: '.246' },
+                { id: 17, name: 'Logan O\'Hoppe', seasonHRs: 20, last7HRs: 1, avg: '.244' },
+                { id: 18, name: 'Nolan Schanuel', seasonHRs: 13, last7HRs: 1, avg: '.255' }
+            ]
+        };
+
+        return hitters[teamAbbr] || [
+            { id: 99, name: 'Player 1', seasonHRs: 15, last7HRs: 1, avg: '.250' },
+            { id: 100, name: 'Player 2', seasonHRs: 12, last7HRs: 0, avg: '.245' },
+            { id: 101, name: 'Player 3', seasonHRs: 18, last7HRs: 2, avg: '.268' }
+        ];
+    }
+}
+
+// Create global instance
+const mlbApi = new MLBApi();

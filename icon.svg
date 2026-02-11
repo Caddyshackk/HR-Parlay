@@ -1,0 +1,29 @@
+<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#1a1a2e" rx="80"/>
+  
+  <!-- Baseball -->
+  <circle cx="256" cy="256" r="140" fill="#ffffff"/>
+  
+  <!-- Baseball stitches -->
+  <path d="M 180 200 Q 220 180 260 200 Q 300 220 340 200" 
+        stroke="#e94560" 
+        stroke-width="8" 
+        fill="none" 
+        stroke-linecap="round"/>
+  <path d="M 180 312 Q 220 332 260 312 Q 300 292 340 312" 
+        stroke="#e94560" 
+        stroke-width="8" 
+        fill="none" 
+        stroke-linecap="round"/>
+  
+  <!-- HR text -->
+  <text x="256" y="280" 
+        font-family="Arial, sans-serif" 
+        font-size="80" 
+        font-weight="bold" 
+        fill="#0f3460" 
+        text-anchor="middle">
+    HR
+  </text>
+</svg>
