@@ -186,4 +186,3 @@ Questions? Issues? Create an issue on GitHub or reach out!
 ---
 
 **Disclaimer**: This app is for entertainment purposes only. Please gamble responsibly.
- 
