@@ -32,16 +32,27 @@ class HRParlayApp {
 
     setupDatePicker() {
         const datePicker = document.getElementById('datePicker');
-        const today = new Date().toISOString().split('T')[0];
-        datePicker.value = today;
-        datePicker.min = '2025-02-01'; // Allow going back to start of year
-        datePicker.max = '2025-12-31'; // Can't go beyond this year
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+        datePicker.value = todayStr;
+        
+        // Set reasonable date range
+        const minDate = new Date(today);
+        minDate.setMonth(today.getMonth() - 1); // 1 month ago
+        
+        const maxDate = new Date(today);
+        maxDate.setMonth(today.getMonth() + 6); // 6 months ahead
+        
+        datePicker.min = minDate.toISOString().split('T')[0];
+        datePicker.max = maxDate.toISOString().split('T')[0];
     }
 
     async loadTodayGames() {
         const datePicker = document.getElementById('datePicker');
         const today = new Date().toISOString().split('T')[0];
         datePicker.value = today;
+        
+        // Use smart finder to get next available games
         await this.loadGames();
     }
 
@@ -56,17 +67,21 @@ class HRParlayApp {
             this.games = await mlbApi.getGamesForDate(dateStr);
             
             if (this.games.length === 0) {
+                // No games on this date - offer to find next games
                 container.innerHTML = `
                     <div class="empty-state">
                         <p>⚾ No games on this date</p>
-                        <p class="hint">Try a different date or click "Today" to find next available games</p>
+                        <p class="hint">Try a different date or click "Today" to find the next available games</p>
+                        <button onclick="app.loadTodayGames()" class="btn-primary" style="margin-top: 1rem;">
+                            Find Next Games
+                        </button>
                     </div>
                 `;
             } else {
                 // Update header with game date
-                const gameDate = new Date(dateStr);
+                const gameDate = new Date(dateStr + 'T12:00:00'); // Add time to avoid timezone issues
                 const dateLabel = gameDate.toLocaleDateString('en-US', { 
-                    weekday: 'long', month: 'long', day: 'numeric' 
+                    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
                 });
                 
                 const dateHeader = document.createElement('div');
