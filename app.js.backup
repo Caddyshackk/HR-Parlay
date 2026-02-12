@@ -127,13 +127,9 @@ class HRParlayApp {
         const homeTeam = game.teams.home.team.abbreviation;
         const awayTeam = game.teams.away.team.abbreviation;
 
-        // Get probable pitchers
-        const awayPitcher = game.teams.away.probablePitcher;
-        const homePitcher = game.teams.home.probablePitcher;
-
-        // Get top hitters from both teams with pitcher matchup
-        const homePlayers = mlbApi.getMockTopHitters(homeTeam, awayPitcher);
-        const awayPlayers = mlbApi.getMockTopHitters(awayTeam, homePitcher);
+        // Get top hitters from both teams
+        const homePlayers = mlbApi.getMockTopHitters(homeTeam);
+        const awayPlayers = mlbApi.getMockTopHitters(awayTeam);
 
         // Combine and sort by recommendation
         const allPlayers = [
@@ -146,8 +142,9 @@ class HRParlayApp {
             const rec = calculateRecommendation(
                 parkFactor, 
                 player.seasonHRs, 
-                player.last7HRs,
-                player.pitcher
+                player.last7HRs, 
+                player.pitcherHR9,
+                player.vsHandAdvantage
             );
             return { ...player, recommendation: rec, parkFactor };
         }).filter(p => p.recommendation) // Only show players with recommendations
@@ -171,54 +168,28 @@ class HRParlayApp {
         const isSelected = this.currentParlay.some(p => p.id === player.id);
         const rec = player.recommendation;
         
-        // Determine card tier class
-        let cardTierClass = '';
-        if (rec.class === 'elite') cardTierClass = 'elite-pick';
-        else if (rec.class === 'top-pick') cardTierClass = 'top-pick';
-        
-        // Build pitcher matchup HTML
-        let pitcherHTML = '';
-        if (player.pitcher) {
-            const pitcher = player.pitcher;
-            const hr9Class = pitcher.hr9 >= 1.5 ? 'bad' : (pitcher.hr9 <= 1.0 ? 'good' : '');
-            const eraClass = pitcher.era >= 4.5 ? 'bad' : (pitcher.era <= 3.5 ? 'good' : '');
-            
-            pitcherHTML = `
-                <div class="pitcher-matchup">
-                    <div class="pitcher-name">
-                        <span>vs ${pitcher.name} (${pitcher.hand}HP)</span>
-                        ${pitcher.vsHandAdvantage ? '<span style="color: var(--success); margin-left: auto;">⚔️ Advantage</span>' : ''}
-                    </div>
-                    <div class="pitcher-stats">
-                        <div class="pitcher-stat">
-                            <span class="pitcher-stat-label">ERA</span>
-                            <span class="pitcher-stat-value ${eraClass}">${pitcher.era.toFixed(2)}</span>
-                        </div>
-                        <div class="pitcher-stat">
-                            <span class="pitcher-stat-label">HR/9</span>
-                            <span class="pitcher-stat-value ${hr9Class}">${pitcher.hr9.toFixed(2)}</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // Build bonus tags HTML
-        let bonusHTML = '';
-        if (rec.bonuses && rec.bonuses.length > 0) {
-            const tags = rec.bonuses.map(bonus => 
-                `<span class="bonus-tag ${bonus.type}">${bonus.icon} ${bonus.text}</span>`
-            ).join('');
-            bonusHTML = `<div class="bonus-tags">${tags}</div>`;
+        // Determine pitcher matchup display
+        let pitcherClass = 'favorable';
+        let pitcherText = '✓ Favorable matchup';
+        if (player.pitcherHR9 < 1.0) {
+            pitcherClass = '';
+            pitcherText = '⚠️ Tough pitcher (HR/9: ' + player.pitcherHR9.toFixed(1) + ')';
+        } else if (player.pitcherHR9 >= 1.5) {
+            pitcherText = '🎯 Great matchup! (HR/9: ' + player.pitcherHR9.toFixed(1) + ')';
+        } else {
+            pitcherText = 'Average pitcher (HR/9: ' + player.pitcherHR9.toFixed(1) + ')';
         }
         
         const playerCard = document.createElement('div');
-        playerCard.className = `player-card ${cardTierClass} ${isSelected ? 'selected' : ''}`;
+        playerCard.className = `player-card ${isSelected ? 'selected' : ''}`;
         playerCard.innerHTML = `
             <div class="player-info">
-                <div class="player-name">${player.name}</div>
+                <div class="player-name">
+                    ${player.name}
+                    ${player.vsHandAdvantage ? '<span class="matchup-badge advantage">Platoon ✓</span>' : ''}
+                </div>
                 <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">
-                    ${player.teamName} • ${player.hand === 'S' ? 'Switch' : player.hand === 'L' ? 'LHB' : 'RHB'}
+                    ${player.teamName} • ${player.bats === 'S' ? 'Switch' : player.bats === 'L' ? 'LHB' : 'RHB'}
                 </div>
                 <div class="player-stats">
                     <div class="stat-item">
@@ -238,48 +209,12 @@ class HRParlayApp {
                         <span class="stat-value">${player.parkFactor}</span>
                     </div>
                 </div>
-                ${pitcherHTML}
-                ${bonusHTML}
-                <div class="score-breakdown" style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border);">
-                    <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text); display: flex; justify-content: space-between;">
-                        <span>Confidence Score</span>
-                        <span style="color: var(--accent);">${rec.score}/17</span>
-                    </div>
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; font-size: 0.75rem;">
-                        <div>
-                            <div style="color: var(--text-muted);">Park</div>
-                            <div style="color: var(--text); font-weight: 600;">${rec.breakdown.park}</div>
-                        </div>
-                        <div>
-                            <div style="color: var(--text-muted);">Power</div>
-                            <div style="color: var(--text); font-weight: 600;">${rec.breakdown.power}</div>
-                        </div>
-                        <div>
-                            <div style="color: var(--text-muted);">Form</div>
-                            <div style="color: var(--text); font-weight: 600;">${rec.breakdown.form}</div>
-                        </div>
-                        <div>
-                            <div style="color: var(--text-muted);">Matchup</div>
-                            <div style="color: var(--text); font-weight: 600;">${rec.breakdown.matchup}</div>
-                        </div>
-                    </div>
+                <div class="pitcher-info ${pitcherClass}">
+                    ${pitcherText}
                 </div>
-            </div>
-            <div class="recommendation ${rec.class}">
-                ${rec.label}
-            </div>
-        `;
-
-        playerCard.addEventListener('click', () => {
-            this.togglePlayer({
-                ...player,
-                game: `${game.teams.away.team.name} @ ${game.teams.home.team.name}`,
-                gameDate: game.gameDate
-            });
-        });
-
-        container.appendChild(playerCard);
-    }
+                <div class="score-breakdown">
+                    <div style="font-weight: 600; margin-bottom: 0.25rem; color: var(--text);">
+                        Score: ${rec.score}/12
                     </div>
                     <div class="score-item">
                         <span>🏟️ Park Factor</span>
