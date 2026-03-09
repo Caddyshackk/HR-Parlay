@@ -237,17 +237,27 @@ class HRParlayApp {
     }
 
     updateStripArrows() {
-        const strip = document.getElementById('gameStrip');
-        const prevBtn = document.getElementById('stripPrev');
-        const nextBtn = document.getElementById('stripNext');
-        if (!strip || !prevBtn || !nextBtn) return;
-        const atStart = strip.scrollLeft <= 10;
-        const atEnd = strip.scrollLeft >= strip.scrollWidth - strip.clientWidth - 10;
-        prevBtn.style.opacity = atStart ? '0.2' : '1';
+    const strip = document.getElementById('gameStrip');
+    const prevBtn = document.getElementById('stripPrev');
+    const nextBtn = document.getElementById('stripNext');
+    const fadeLeft = document.querySelector('.strip-fade-left');
+    const fadeRight = document.querySelector('.strip-fade-right');
+    if (!strip) return;
+
+    const atStart = strip.scrollLeft <= 10;
+    const atEnd = strip.scrollLeft >= strip.scrollWidth - strip.clientWidth - 10;
+
+    if (prevBtn) {
+        prevBtn.style.opacity = atStart ? '0' : '1';
         prevBtn.style.pointerEvents = atStart ? 'none' : 'auto';
-        nextBtn.style.opacity = atEnd ? '0.2' : '1';
+    }
+    if (nextBtn) {
+        nextBtn.style.opacity = atEnd ? '0' : '1';
         nextBtn.style.pointerEvents = atEnd ? 'none' : 'auto';
     }
+    if (fadeLeft) fadeLeft.style.opacity = atStart ? '0' : '1';
+    if (fadeRight) fadeRight.style.opacity = atEnd ? '0' : '1';
+}
 
     scrollStrip(dir) {
         const strip = document.getElementById('gameStrip');
