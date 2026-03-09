@@ -82,7 +82,7 @@ body {
         0 0;
     background-attachment: fixed;
     color: var(--text);
-    overflow-x: clip; /* clip instead of hidden — allows children to use overflow-x: auto */
+    overflow-x: hidden; /* clip instead of hidden — allows children to use overflow-x: auto */
     -webkit-font-smoothing: antialiased;
     position: relative;
 }
@@ -1665,9 +1665,10 @@ body::before {
     top: 0;
     z-index: 100;
     background: linear-gradient(180deg, var(--bg) 90%, transparent);
-    padding: 0.6rem 1rem 0.5rem;
+    padding: 0.6rem 0 0.5rem;
     width: 100%;
     box-sizing: border-box;
+    overflow: hidden;
 }
 
 .game-strip {
@@ -1678,10 +1679,10 @@ body::before {
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    padding-bottom: 0.35rem;
-    /* Center chips on desktop to align with main-content */
+    padding: 0 1rem 0.35rem 1rem;
     max-width: 600px;
     margin: 0 auto;
+    box-sizing: content-box;
 }
 
 .game-strip::-webkit-scrollbar {
