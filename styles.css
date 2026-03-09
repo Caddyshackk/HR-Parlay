@@ -1778,29 +1778,6 @@ body::before {
     overflow: hidden;
 }
 
-/* Fade edge overlays — pointer-events none so clicks pass through */
-.strip-fade-left,
-.strip-fade-right {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 60px;
-    pointer-events: none;
-    z-index: 4;
-    transition: opacity 0.2s;
-    opacity: 0;
-}
-
-.strip-fade-left {
-    left: 36px;
-    background: linear-gradient(to right, var(--bg) 20%, transparent);
-}
-
-.strip-fade-right {
-    right: 36px;
-    background: linear-gradient(to left, var(--bg) 20%, transparent);
-}
-
 .strip-arrow {
     flex-shrink: 0;
     background: transparent;
