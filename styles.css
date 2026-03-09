@@ -1801,30 +1801,30 @@ body::before {
     background: linear-gradient(to left, var(--bg) 20%, transparent);
 }
 
-/* Arrow buttons */
 .strip-arrow {
     flex-shrink: 0;
-    background: rgba(0, 212, 255, 0.1);
-    border: 1px solid rgba(0, 212, 255, 0.25);
-    color: var(--neon-cyan);
-    font-size: 1.4rem;
+    background: transparent;
+    border: none;
+    color: rgba(0, 212, 255, 0.4);
+    font-size: 1.6rem;
     line-height: 1;
-    width: 30px;
+    width: 24px;
     height: 30px;
-    border-radius: 50%;
+    border-radius: 0;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.15s;
+    transition: color 0.15s;
     z-index: 3;
     padding: 0;
     font-family: inherit;
 }
 
 .strip-arrow:hover {
-    background: rgba(0, 212, 255, 0.25);
-    box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+    background: transparent;
+    box-shadow: none;
+    color: var(--neon-cyan);
 }
 
 /* Hide arrows on mobile — swipe is more natural there */
