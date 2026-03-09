@@ -1713,7 +1713,7 @@ body::before {
     background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(255, 16, 240, 0.1));
     border-color: var(--neon-cyan);
     color: var(--text);
-    box-shadow: 0 0 14px rgba(0, 212, 255, 0.25);
+    box-shadow: 0 0 6px rgba(0, 212, 255, 0.3);
 }
 
 .chip-matchup {
