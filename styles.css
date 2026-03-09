@@ -1668,7 +1668,7 @@ body::before {
     padding: 0.6rem 0 0.5rem;
     width: 100%;
     box-sizing: border-box;
-    overflow: hidden;
+    /* remove overflow: hidden from here */
 }
 
 .game-strip {
@@ -1678,6 +1678,7 @@ body::before {
     overflow-y: visible;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;        /* ← add this */
     scrollbar-width: none;
     padding: 0 1rem 0.35rem 1rem;
     max-width: 600px;
