@@ -231,6 +231,12 @@ class HRParlayApp {
             strip.appendChild(chip);
         });
 
+        // Hide fades on initial load
+        const fl = document.querySelector('.strip-fade-left');
+        const fr = document.querySelector('.strip-fade-right');
+        if (fl) fl.style.opacity = '0';
+        if (fr) fr.style.opacity = '0';
+
         this.updateStripArrows();
         strip.addEventListener('scroll', () => this.updateStripArrows(), { passive: true });
         wrapper.style.display = '';
