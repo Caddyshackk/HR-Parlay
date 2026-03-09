@@ -1784,20 +1784,19 @@ body::before {
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 40px;
+    width: 60px;
     pointer-events: none;
-    z-index: 3;
+    z-index: 4;
+    transition: opacity 0.2s;
 }
 
 .strip-fade-left {
     left: 36px;
-    width: 60px;
     background: linear-gradient(to right, var(--bg) 20%, transparent);
 }
 
 .strip-fade-right {
     right: 36px;
-    width: 60px;
     background: linear-gradient(to left, var(--bg) 20%, transparent);
 }
 
