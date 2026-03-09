@@ -1788,6 +1788,7 @@ body::before {
     pointer-events: none;
     z-index: 4;
     transition: opacity 0.2s;
+    opacity: 0;
 }
 
 .strip-fade-left {
