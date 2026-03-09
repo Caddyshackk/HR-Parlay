@@ -1791,12 +1791,14 @@ body::before {
 
 .strip-fade-left {
     left: 36px;
-    background: linear-gradient(to right, var(--bg), transparent);
+    width: 60px;
+    background: linear-gradient(to right, var(--bg) 20%, transparent);
 }
 
 .strip-fade-right {
     right: 36px;
-    background: linear-gradient(to left, var(--bg), transparent);
+    width: 60px;
+    background: linear-gradient(to left, var(--bg) 20%, transparent);
 }
 
 /* Arrow buttons */
