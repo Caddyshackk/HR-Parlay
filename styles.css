@@ -1679,7 +1679,7 @@ body::before {
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x;
     scrollbar-width: none;
-    padding: 0 0.5rem 0.35rem 0.5rem;
+    padding: 0.4rem 0.5rem 0.35rem 0.5rem;
     flex: 1;
     min-width: 0;
 }
