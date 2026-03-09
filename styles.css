@@ -1694,12 +1694,12 @@ body::before {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
-    padding: 0.5rem 0.75rem;
+    padding: 0.4rem 0.5rem;
     cursor: pointer;
     transition: all 0.18s;
     font-family: inherit;
     text-align: center;
-    min-width: 90px;
+    min-width: 70px;
     color: var(--text-muted);
 }
 
