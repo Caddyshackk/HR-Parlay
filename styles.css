@@ -5,80 +5,70 @@
 }
 
 :root {
-    /* FULL SYNTHWAVE PALETTE */
-    --primary: #ff006e;
-    --secondary: #00ffff;
-    --accent: #ff10f0;
-    --success: #39ff14;
-    --warning: #ffff00;
-    
-    /* Background - Deep 80s Purple */
-    --bg: #0d0221;
-    --bg-secondary: #190736;
-    --card-bg: #240046;
-    
+    /* GRASS & DIRT — MLB Day Game Theme */
+    --primary: #c8743a;
+    --secondary: #4a9e4a;
+    --accent: #e8a050;
+    --success: #5dbf5d;
+    --warning: #e8c840;
+
+    /* Backgrounds */
+    --bg: #0f1a0f;
+    --bg-secondary: #162416;
+    --card-bg: #1e321e;
+
     /* Text */
-    --text: #ffffff;
-    --text-muted: #d4bbff;
-    
-    /* Neon Colors */
-    --neon-pink: #ff006e;
-    --neon-magenta: #ff10f0;
-    --neon-cyan: #00ffff;
-    --neon-purple: #8b00ff;
-    --neon-yellow: #ffff00;
-    --neon-green: #39ff14;
-    --neon-orange: #ff9e00;
-    --neon-blue: #00d4ff;
-    
-    /* Retro Grid */
-    --grid-color: rgba(255, 16, 240, 0.15);
-    --grid-glow: rgba(255, 0, 255, 0.3);
-    
+    --text: #f0ede0;
+    --text-muted: #9ab89a;
+
+    /* Theme Colors — mapped to old neon names for compatibility */
+    --neon-pink: #c8743a;       /* dirt/clay */
+    --neon-magenta: #e8a050;    /* warm amber */
+    --neon-cyan: #5dbf5d;       /* grass green */
+    --neon-purple: #2e6b2e;     /* deep outfield */
+    --neon-yellow: #e8c840;     /* chalk/warning track */
+    --neon-green: #7fdf7f;      /* bright grass */
+    --neon-orange: #c8743a;     /* dirt */
+    --neon-blue: #4a9e4a;       /* turf */
+
+    /* Grid */
+    --grid-color: rgba(74, 158, 74, 0.1);
+    --grid-glow: rgba(74, 158, 74, 0.2);
+
     /* Shadows */
-    --shadow-pink: 0 0 30px rgba(255, 0, 110, 0.6);
-    --shadow-cyan: 0 0 30px rgba(0, 255, 255, 0.6);
-    --shadow-purple: 0 0 40px rgba(139, 0, 255, 0.5);
+    --shadow-pink: 0 0 30px rgba(200, 116, 58, 0.5);
+    --shadow-cyan: 0 0 30px rgba(74, 158, 74, 0.5);
+    --shadow-purple: 0 0 40px rgba(46, 107, 46, 0.4);
 }
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background: 
-        /* Synthwave Sun */
-        radial-gradient(ellipse at center top, 
-            rgba(255, 16, 240, 0.3) 0%, 
-            transparent 50%),
-        /* Purple Sky Gradient */
-        linear-gradient(180deg, 
-            #0d0221 0%, 
-            #190736 25%,
-            #240046 50%, 
-            #3c096c 75%,
-            #5a189a 100%),
-        /* Retro Grid */
-        repeating-linear-gradient(
-            0deg,
-            transparent,
-            transparent 49px,
-            var(--grid-color) 49px,
-            var(--grid-color) 51px
-        ),
+    background:
+        /* Warm sun glow at top */
+        radial-gradient(ellipse at center top,
+            rgba(232, 160, 80, 0.18) 0%,
+            transparent 55%),
+        /* Deep green field gradient */
+        linear-gradient(180deg,
+            #0f1a0f 0%,
+            #162416 30%,
+            #1e321e 60%,
+            #162816 100%),
+        /* Subtle grass pattern */
         repeating-linear-gradient(
             90deg,
             transparent,
-            transparent 49px,
-            var(--grid-color) 49px,
-            var(--grid-color) 51px
+            transparent 59px,
+            rgba(74, 158, 74, 0.05) 59px,
+            rgba(74, 158, 74, 0.05) 60px
         );
-    background-size: 
-        100% 400px,
-        100% 100%, 
-        50px 50px, 
-        50px 50px;
-    background-position: 
+    background-size:
+        100% 350px,
+        100% 100%,
+        60px 60px;
+    background-position:
         center top,
         center center,
-        0 0,
         0 0;
     background-attachment: fixed;
     color: var(--text);
@@ -96,33 +86,32 @@ body::before {
     height: 100%;
     background: repeating-linear-gradient(
         0deg,
-        rgba(0, 0, 0, 0.15),
-        rgba(0, 0, 0, 0.15) 1px,
+        rgba(0, 0, 0, 0.08),
+        rgba(0, 0, 0, 0.08) 1px,
         transparent 1px,
-        transparent 2px
+        transparent 3px
     );
     pointer-events: none;
     z-index: 9999;
-    opacity: 0.3;
+    opacity: 0.2;
 }
 
 .app-header {
-    background: 
-        linear-gradient(135deg, 
-            #ff10f0 0%, 
-            #00ffff 25%,
-            #ff006e 50%,
-            #8b00ff 75%,
-            #00ffff 100%);
+    background:
+        linear-gradient(135deg,
+            #1a3a1a 0%,
+            #2e5c2e 30%,
+            #1e3a1e 60%,
+            #2a4a1a 100%);
     background-size: 200% 200%;
-    animation: gradient-shift 8s ease infinite;
+    animation: gradient-shift 12s ease infinite;
     padding: 1.5rem 1rem 1rem;
     text-align: center;
-    box-shadow: 
-        0 0 40px rgba(255, 16, 240, 0.8),
-        0 0 80px rgba(0, 255, 255, 0.6),
-        0 8px 32px rgba(0, 0, 0, 0.9),
-        inset 0 -2px 20px rgba(255, 255, 255, 0.2);
+    box-shadow:
+        0 0 30px rgba(74, 158, 74, 0.4),
+        0 0 60px rgba(200, 116, 58, 0.2),
+        0 8px 32px rgba(0, 0, 0, 0.8),
+        inset 0 -2px 20px rgba(200, 116, 58, 0.1);
     position: sticky;
     top: 0;
     z-index: 100;
@@ -138,14 +127,14 @@ body::before {
 .app-header h1 {
     font-size: 1.8rem;
     margin-bottom: 0.5rem;
-    background: linear-gradient(180deg, #ffffff 0%, #ff10f0 50%, #00ffff 100%);
+    background: linear-gradient(180deg, #f0ede0 0%, #e8a050 50%, #7fdf7f 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    filter: 
-        drop-shadow(0 0 10px rgba(255, 255, 255, 1))
-        drop-shadow(0 0 20px rgba(255, 16, 240, 0.8))
-        drop-shadow(0 0 40px rgba(0, 255, 255, 0.6));
+    filter:
+        drop-shadow(0 0 10px rgba(240, 237, 224, 0.8))
+        drop-shadow(0 0 20px rgba(200, 116, 58, 0.6))
+        drop-shadow(0 0 40px rgba(74, 158, 74, 0.4));
     font-weight: 900;
     letter-spacing: 3px;
     text-transform: uppercase;
@@ -166,8 +155,8 @@ body::before {
 }
 
 .date-picker {
-    background: rgba(36, 0, 70, 0.6);
-    border: 2px solid var(--neon-magenta);
+    background: rgba(30, 50, 30, 0.6);
+    border: 2px solid var(--neon-cyan);
     border-radius: 8px;
     padding: 0.5rem 0.75rem;
     color: var(--neon-cyan);
@@ -309,13 +298,13 @@ body::before {
         linear-gradient(135deg, rgba(36, 0, 70, 0.95) 0%, rgba(25, 7, 54, 0.98) 100%);
     border-radius: 16px;
     overflow: hidden;
-    box-shadow: 
+    box-shadow:
         0 8px 32px rgba(0,0,0,0.6),
-        0 0 40px rgba(255, 16, 240, 0.4),
-        0 0 60px rgba(0, 255, 255, 0.2),
-        inset 0 0 60px rgba(139, 0, 255, 0.1);
+        0 0 30px rgba(74, 158, 74, 0.2),
+        0 0 50px rgba(200, 116, 58, 0.1),
+        inset 0 0 40px rgba(46, 107, 46, 0.1);
     border: 2px solid;
-    border-image: linear-gradient(135deg, #ff10f0, #00ffff, #8b00ff) 1;
+    border-image: linear-gradient(135deg, #c8743a, #5dbf5d, #2e6b2e) 1;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
 }
@@ -1663,7 +1652,7 @@ body::before {
     position: sticky;
     top: 0;
     z-index: 100;
-    background: linear-gradient(180deg, var(--bg) 90%, transparent);
+    background: linear-gradient(180deg, #0f1a0f 92%, transparent);
     padding: 0.6rem 0 0.5rem;
     width: 100%;
     box-sizing: border-box;
@@ -1679,7 +1668,7 @@ body::before {
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x;
     scrollbar-width: none;
-    padding: 0.4rem 0.5rem 0.35rem 0.5rem;
+    padding: 0 0.5rem 0.35rem 0.5rem;
     flex: 1;
     min-width: 0;
 }
@@ -1694,12 +1683,12 @@ body::before {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
-    padding: 0.4rem 0.5rem;
+    padding: 0.5rem 0.75rem;
     cursor: pointer;
     transition: all 0.18s;
     font-family: inherit;
     text-align: center;
-    min-width: 70px;
+    min-width: 90px;
     color: var(--text-muted);
 }
 
@@ -1713,7 +1702,7 @@ body::before {
     background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(255, 16, 240, 0.1));
     border-color: var(--neon-cyan);
     color: var(--text);
-    box-shadow: 0 0 6px rgba(0, 212, 255, 0.3);
+    box-shadow: 0 0 14px rgba(0, 212, 255, 0.25);
 }
 
 .chip-matchup {
@@ -1765,47 +1754,61 @@ body::before {
     margin-bottom: 0; /* only one card showing at a time */
 }
 
-/* ═══════════════════════════════════════════════════════════
-   STRIP ARROWS + FADE EDGES
-═══════════════════════════════════════════════════════════ */
-
 .strip-inner {
     position: relative;
     display: flex;
     align-items: center;
     max-width: 600px;
     margin: 0 auto;
-    overflow: visible;
-    padding: 4px 0;
+    overflow: hidden; /* clip here, not on the strip */
+}
+
+.strip-fade-left,
+.strip-fade-right {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 60px;
+    pointer-events: none;
+    z-index: 4;
+    transition: opacity 0.2s;
+}
+
+.strip-fade-left {
+    left: 36px;
+    background: linear-gradient(to right, var(--bg) 20%, transparent);
+}
+
+.strip-fade-right {
+    right: 36px;
+    background: linear-gradient(to left, var(--bg) 20%, transparent);
 }
 
 .strip-arrow {
     flex-shrink: 0;
-    background: transparent;
-    border: none;
-    color: rgba(0, 212, 255, 0.4);
-    font-size: 1.6rem;
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.25);
+    color: var(--neon-cyan);
+    font-size: 1.4rem;
     line-height: 1;
-    width: 24px;
+    width: 30px;
     height: 30px;
-    border-radius: 0;
+    border-radius: 50%;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: color 0.15s;
+    transition: all 0.15s;
     z-index: 3;
     padding: 0;
     font-family: inherit;
 }
 
 .strip-arrow:hover {
-    background: transparent;
-    box-shadow: none;
-    color: var(--neon-cyan);
+    background: rgba(0, 212, 255, 0.25);
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
 }
 
-/* Hide arrows on mobile — swipe is more natural there */
 @media (hover: none) {
     .strip-arrow { display: none; }
     .strip-fade-left, .strip-fade-right { display: none; }
