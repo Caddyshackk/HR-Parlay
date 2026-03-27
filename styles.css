@@ -1859,3 +1859,144 @@ body::before {
     margin-top: 0.2rem;
     text-align: center;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   WEATHER PANEL
+═══════════════════════════════════════════════════════════ */
+
+.weather-panel {
+    padding: 0.6rem 1rem;
+    border-top: 1px solid rgba(74, 158, 74, 0.15);
+    border-bottom: 1px solid rgba(74, 158, 74, 0.1);
+    font-size: 0.8rem;
+    transition: background 0.3s;
+}
+
+.weather-loading {
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-style: italic;
+}
+
+.weather-spinner {
+    animation: weatherSpin 2s linear infinite;
+    display: inline-block;
+}
+
+@keyframes weatherSpin {
+    0%   { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.weather-unavailable {
+    color: rgba(255,255,255,0.25);
+    font-size: 0.75rem;
+    font-style: italic;
+}
+
+/* Impact color backgrounds */
+.weather-impact-great  { background: rgba(127, 223, 127, 0.08); border-color: rgba(127, 223, 127, 0.25); }
+.weather-impact-good   { background: rgba(74, 158, 74, 0.06); }
+.weather-impact-neutral { background: rgba(10, 20, 10, 0.3); }
+.weather-impact-poor   { background: rgba(200, 116, 58, 0.06); }
+.weather-impact-bad    { background: rgba(200, 116, 58, 0.1); border-color: rgba(200, 116, 58, 0.25); }
+
+.weather-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.4rem;
+}
+
+.weather-conditions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.weather-icon-big {
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+.weather-nums {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.weather-temp {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--text);
+}
+
+.weather-humidity {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.weather-wind {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.weather-wind-speed {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.weather-wind-dir {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.weather-impact-badge {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-align: right;
+}
+
+.weather-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+
+.weather-detail {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+.detail-pos {
+    background: rgba(127, 223, 127, 0.12);
+    color: #7fdf7f;
+    border: 1px solid rgba(127, 223, 127, 0.2);
+}
+
+.detail-neg {
+    background: rgba(200, 116, 58, 0.12);
+    color: #c8743a;
+    border: 1px solid rgba(200, 116, 58, 0.2);
+}
+
+.detail-neu {
+    background: rgba(255,255,255,0.05);
+    color: var(--text-muted);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* Weather chip badge on strip */
+.chip-weather {
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    margin-left: 0.15rem;
+}

@@ -15,6 +15,7 @@ class HRParlayApp {
         // Load odds in background (non-blocking)
         this.allOdds = null;
         this.bdlGames = null;
+        this.weatherCache = {}; // parkAbbr → { weather, impact }
         this.loadOddsAndLiveData();
 
         // Load games immediately
@@ -204,10 +205,15 @@ class HRParlayApp {
             } else if (liveStatus?.type === 'final') {
                 chipMetaHTML = `<div class="chip-final">F · ${liveStatus.score}</div>`;
             } else {
+                const cached = this.weatherCache[homeAbbr];
+                const tempStr = cached?.weather ? `${cached.weather.tempF}°` : '';
+                const windStr = cached?.weather ? `${cached.weather.windMph}mph` : '';
+                const wIcon   = cached?.weather ? weatherApi.weatherIcon(cached.weather.weatherCode) : '';
                 chipMetaHTML = `
                     <div class="chip-meta">
                         <span class="chip-time">${timeStr}</span>
                         <span class="park-badge ${parkClass}" style="font-size:0.6rem;padding:0.1rem 0.3rem;">${parkInfo.factor}</span>
+                        ${tempStr ? `<span class="chip-weather">${wIcon}${tempStr}</span>` : ''}
                     </div>`;
             }
 
@@ -231,39 +237,33 @@ class HRParlayApp {
             strip.appendChild(chip);
         });
 
-        // Hide fades on initial load
-        const fl = document.querySelector('.strip-fade-left');
-        const fr = document.querySelector('.strip-fade-right');
-        if (fl) fl.style.opacity = '0';
-        if (fr) fr.style.opacity = '0';
-
         this.updateStripArrows();
         strip.addEventListener('scroll', () => this.updateStripArrows(), { passive: true });
         wrapper.style.display = '';
     }
 
     updateStripArrows() {
-    const strip = document.getElementById('gameStrip');
-    const prevBtn = document.getElementById('stripPrev');
-    const nextBtn = document.getElementById('stripNext');
-    const fadeLeft = document.querySelector('.strip-fade-left');
-    const fadeRight = document.querySelector('.strip-fade-right');
-    if (!strip) return;
+        const strip = document.getElementById('gameStrip');
+        const prevBtn = document.getElementById('stripPrev');
+        const nextBtn = document.getElementById('stripNext');
+        const fadeLeft = document.querySelector('.strip-fade-left');
+        const fadeRight = document.querySelector('.strip-fade-right');
+        if (!strip) return;
 
-    const atStart = strip.scrollLeft <= 10;
-    const atEnd = strip.scrollLeft >= strip.scrollWidth - strip.clientWidth - 10;
+        const atStart = strip.scrollLeft <= 10;
+        const atEnd = strip.scrollLeft >= strip.scrollWidth - strip.clientWidth - 10;
 
-    if (prevBtn) {
-        prevBtn.style.opacity = atStart ? '0' : '1';
-        prevBtn.style.pointerEvents = atStart ? 'none' : 'auto';
+        if (prevBtn) {
+            prevBtn.style.opacity = atStart ? '0' : '1';
+            prevBtn.style.pointerEvents = atStart ? 'none' : 'auto';
+        }
+        if (nextBtn) {
+            nextBtn.style.opacity = atEnd ? '0' : '1';
+            nextBtn.style.pointerEvents = atEnd ? 'none' : 'auto';
+        }
+        if (fadeLeft) fadeLeft.style.opacity = atStart ? '0' : '1';
+        if (fadeRight) fadeRight.style.opacity = atEnd ? '0' : '1';
     }
-    if (nextBtn) {
-        nextBtn.style.opacity = atEnd ? '0' : '1';
-        nextBtn.style.pointerEvents = atEnd ? 'none' : 'auto';
-    }
-    if (fadeLeft) fadeLeft.style.opacity = atStart ? '0' : '1';
-    if (fadeRight) fadeRight.style.opacity = atEnd ? '0' : '1';
-}
 
     scrollStrip(dir) {
         const strip = document.getElementById('gameStrip');
@@ -418,6 +418,9 @@ class HRParlayApp {
                 </div>
                 ${parkInfo.notes ? `<div style="margin-top: 0.25rem; font-size: 0.75rem; color: var(--text-muted);">💡 ${parkInfo.notes}</div>` : ''}
             </div>
+            <div id="weather-${game.gamePk}" class="weather-panel weather-loading">
+                <span class="weather-spinner">🌡️</span> Loading weather...
+            </div>
             ${pitcherMatchupHTML}
             <div id="pitcher-trends-${game.gamePk}"></div>
             ${this.buildOddsPanel(game)}
@@ -429,6 +432,9 @@ class HRParlayApp {
         `;
 
         container.appendChild(gameCard);
+
+        // Fetch weather async and inject into card
+        this.loadGameWeather(game, homeTeam);
 
         // Load players for both teams
         setTimeout(() => {
@@ -484,13 +490,18 @@ class HRParlayApp {
             ...awayPlayers.map(p => ({ ...p, team: awayTeam, teamName: game.teams.away.team.name }))
         ];
 
+        // Fetch weather impact for this park (cached)
+        const weatherData = this.weatherCache[homeTeam] || null;
+        const weatherScore = weatherData?.impact?.score ?? 0;
+
         // Calculate recommendations with pitcher matchup and sort
         const playersWithRecs = allPlayers.map(player => {
-            const rec = calculateRecommendation(
-                parkFactor, 
-                player.seasonHRs, 
+            const rec = calculateRecommendationWithWeather(
+                parkFactor,
+                player.seasonHRs,
                 player.last7HRs,
-                player.pitcher
+                player.pitcher,
+                weatherScore
             );
             return { ...player, recommendation: rec, parkFactor };
         }).filter(p => p.recommendation) // Only show players with recommendations
@@ -811,6 +822,71 @@ class HRParlayApp {
 
             <div class="adv-pa-note">Based on ${stats.pa || '?'} plate appearances · via Baseball Savant</div>
         `;
+    }
+
+    async loadGameWeather(game, parkAbbr) {
+        const el = document.getElementById(`weather-${game.gamePk}`);
+        if (!el) return;
+
+        try {
+            const weather = await weatherApi.getParkWeather(parkAbbr);
+            if (!weather) {
+                el.className = 'weather-panel weather-unavailable';
+                el.innerHTML = '🌡️ Weather unavailable';
+                return;
+            }
+            const impact = weatherApi.calcWeatherImpact(weather, parkAbbr);
+
+            // Cache so loadPlayersForGame can use it
+            this.weatherCache[parkAbbr] = { weather, impact };
+
+            el.className = `weather-panel weather-impact-${impact.score >= 2 ? 'great' : impact.score >= 1 ? 'good' : impact.score <= -2 ? 'bad' : impact.score <= -1 ? 'poor' : 'neutral'}`;
+            el.innerHTML = this.buildWeatherHTML(weather, impact, parkAbbr);
+
+            // Re-render strip chips to show temp
+            if (this.games) this.renderGameStrip(this.games);
+
+            // Re-render players now that we have weather
+            this.loadPlayersForGame(game, getParkFactor(parkAbbr)?.factor || 100);
+        } catch (e) {
+            if (el) { el.className = 'weather-panel weather-unavailable'; el.innerHTML = '🌡️ Weather unavailable'; }
+        }
+    }
+
+    buildWeatherHTML(weather, impact, parkAbbr) {
+        const icon = weatherApi.weatherIcon(weather.weatherCode);
+        const windDirLabel = this.windDirLabel(weather.windDir);
+        const impactColor = impact.score >= 2 ? 'var(--neon-green)' : impact.score >= 1 ? '#a8d8a8' : impact.score <= -2 ? '#c8743a' : impact.score <= -1 ? '#e8a050' : 'var(--text-muted)';
+
+        const detailsHTML = impact.details.map(d => `
+            <span class="weather-detail ${d.positive === true ? 'detail-pos' : d.positive === false ? 'detail-neg' : 'detail-neu'}">
+                ${d.icon} ${d.text}
+            </span>`).join('');
+
+        return `
+            <div class="weather-top">
+                <div class="weather-conditions">
+                    <span class="weather-icon-big">${icon}</span>
+                    <div class="weather-nums">
+                        <span class="weather-temp">${weather.tempF}°F</span>
+                        <span class="weather-humidity">💧 ${weather.humidity}%</span>
+                    </div>
+                    <div class="weather-wind">
+                        <span class="weather-wind-speed">💨 ${weather.windMph} mph</span>
+                        <span class="weather-wind-dir">${windDirLabel}</span>
+                    </div>
+                </div>
+                <div class="weather-impact-badge" style="color:${impactColor}">
+                    ${impact.label}
+                </div>
+            </div>
+            <div class="weather-details">${detailsHTML}</div>
+        `;
+    }
+
+    windDirLabel(deg) {
+        const dirs = ['N','NE','E','SE','S','SW','W','NW'];
+        return dirs[Math.round(deg / 45) % 8];
     }
 
     togglePlayer(player) {
@@ -1138,6 +1214,33 @@ class HRParlayApp {
     storeParlays() {
         localStorage.setItem('hrParlays', JSON.stringify(this.savedParlays));
     }
+}
+
+// Weather-aware wrapper for calculateRecommendation
+// Intercepts the call and adds weatherScore to the result
+const _originalCalcRec = typeof calculateRecommendation === 'function' ? calculateRecommendation : null;
+function calculateRecommendationWithWeather(parkFactor, seasonHRs, last7HRs, pitcher, weatherScore = 0) {
+    // Call original
+    const rec = _originalCalcRec
+        ? _originalCalcRec(parkFactor, seasonHRs, last7HRs, pitcher)
+        : { score: 0, label: 'N/A', class: '', breakdown: {}, bonuses: [] };
+
+    if (!rec) return rec;
+
+    // Add weather to score and breakdown
+    const adjustedScore = Math.min(17, Math.max(0, (rec.score || 0) + weatherScore));
+    const weatherBonus = weatherScore >= 2 ? [{ icon: '⚡', text: 'Great HR weather', type: 'good' }]
+                       : weatherScore >= 1 ? [{ icon: '✅', text: 'Favorable weather', type: 'good' }]
+                       : weatherScore <= -2 ? [{ icon: '⛔', text: 'Tough weather', type: 'bad' }]
+                       : weatherScore <= -1 ? [{ icon: '⚠️', text: 'Weather hurts power', type: 'bad' }]
+                       : [];
+
+    return {
+        ...rec,
+        score: adjustedScore,
+        bonuses: [...(rec.bonuses || []), ...weatherBonus],
+        breakdown: { ...(rec.breakdown || {}), weather: weatherScore }
+    };
 }
 
 // Initialize app when DOM is ready
