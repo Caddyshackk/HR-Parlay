@@ -1768,7 +1768,7 @@ body::before {
 @media (min-width: 768px) {
     .strip-inner {
         overflow: hidden;
-        padding: 4px 36px;
+        padding: 4px 28px;
     }
     .game-strip {
         padding-left: 4px;
