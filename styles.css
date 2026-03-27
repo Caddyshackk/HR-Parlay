@@ -1761,7 +1761,19 @@ body::before {
     align-items: center;
     max-width: 600px;
     margin: 0 auto;
-    overflow: hidden; /* clip here, not on the strip */
+    overflow: visible;
+    padding: 4px 0;
+}
+
+@media (min-width: 768px) {
+    .strip-inner {
+        overflow: hidden;
+        padding: 4px 8px;
+    }
+    .game-strip {
+        padding-left: 4px;
+        padding-right: 4px;
+    }
 }
 
 .strip-fade-left,
