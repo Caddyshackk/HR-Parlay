@@ -1767,12 +1767,25 @@ body::before {
 
 @media (min-width: 768px) {
     .strip-inner {
-        overflow: hidden;
-        padding: 4px 12px;
+        overflow: visible;
+        padding: 4px 0;
     }
+
     .game-strip {
-        padding-left: 4px;
-        padding-right: 4px;
+        -webkit-mask-image: linear-gradient(
+            to right,
+            transparent 0%,
+            black 40px,
+            black calc(100% - 40px),
+            transparent 100%
+        );
+        mask-image: linear-gradient(
+            to right,
+            transparent 0%,
+            black 40px,
+            black calc(100% - 40px),
+            transparent 100%
+        );
     }
 }
 
