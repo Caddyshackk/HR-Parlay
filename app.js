@@ -205,15 +205,10 @@ class HRParlayApp {
             } else if (liveStatus?.type === 'final') {
                 chipMetaHTML = `<div class="chip-final">F · ${liveStatus.score}</div>`;
             } else {
-                const cached = this.weatherCache[homeAbbr];
-                const tempStr = cached?.weather ? `${cached.weather.tempF}°` : '';
-                const windStr = cached?.weather ? `${cached.weather.windMph}mph` : '';
-                const wIcon   = cached?.weather ? weatherApi.weatherIcon(cached.weather.weatherCode) : '';
                 chipMetaHTML = `
                     <div class="chip-meta">
                         <span class="chip-time">${timeStr}</span>
                         <span class="park-badge ${parkClass}" style="font-size:0.6rem;padding:0.1rem 0.3rem;">${parkInfo.factor}</span>
-                        ${tempStr ? `<span class="chip-weather">${wIcon}${tempStr}</span>` : ''}
                     </div>`;
             }
 
