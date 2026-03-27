@@ -1761,7 +1761,7 @@ body::before {
     align-items: center;
     max-width: 600px;
     margin: 0 auto;
-    overflow: visible;
+    overflow: hidden;
     padding: 4px 0;
 }
 
