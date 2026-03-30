@@ -27,6 +27,7 @@
         <!-- Navigation Tabs -->
         <nav class="nav-tabs">
             <button class="tab-btn active" data-tab="picks">Today's Picks</button>
+            <button class="tab-btn" data-tab="best">⭐ Best Picks</button>
             <button class="tab-btn" data-tab="parlay">My Parlay (<span id="parlayCount">0</span>)</button>
             <button class="tab-btn" data-tab="history">History</button>
         </nav>
@@ -52,6 +53,16 @@
                 </div>
                 <div id="gameDetail" class="game-detail-panel"></div>
                 <div id="gamesContainer" class="games-container" style="display:none;"></div>
+            </section>
+
+            <!-- Best Picks Tab -->
+            <section id="best-tab" class="tab-content">
+                <div id="bestPicksContainer" class="best-picks-container">
+                    <div class="empty-state">
+                        <p>⭐ Loading best picks...</p>
+                        <p class="hint">Top players across all today's games ranked by confidence</p>
+                    </div>
+                </div>
             </section>
 
             <!-- My Parlay Tab -->

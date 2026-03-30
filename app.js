@@ -121,6 +121,8 @@ class HRParlayApp {
         // Strip only shows on the picks tab
         const strip = document.getElementById('gameStripWrapper');
         if (strip) strip.style.display = tabName === 'picks' ? '' : 'none';
+        // Build best picks when switching to that tab
+        if (tabName === 'best') this.buildBestPicksTab();
     }
 
     updateDate() {
@@ -205,10 +207,15 @@ class HRParlayApp {
             } else if (liveStatus?.type === 'final') {
                 chipMetaHTML = `<div class="chip-final">F · ${liveStatus.score}</div>`;
             } else {
+                const cached = this.weatherCache[homeAbbr];
+                const tempStr = cached?.weather ? `${cached.weather.tempF}°` : '';
+                const windStr = cached?.weather ? `${cached.weather.windMph}mph` : '';
+                const wIcon   = cached?.weather ? weatherApi.weatherIcon(cached.weather.weatherCode) : '';
                 chipMetaHTML = `
                     <div class="chip-meta">
                         <span class="chip-time">${timeStr}</span>
                         <span class="park-badge ${parkClass}" style="font-size:0.6rem;padding:0.1rem 0.3rem;">${parkInfo.factor}</span>
+                        ${tempStr ? `<span class="chip-weather">${wIcon}${tempStr}</span>` : ''}
                     </div>`;
             }
 
@@ -882,6 +889,136 @@ class HRParlayApp {
     windDirLabel(deg) {
         const dirs = ['N','NE','E','SE','S','SW','W','NW'];
         return dirs[Math.round(deg / 45) % 8];
+    }
+
+    async buildBestPicksTab() {
+        const container = document.getElementById('bestPicksContainer');
+        if (!container) return;
+
+        if (!this.games || this.games.length === 0) {
+            container.innerHTML = `<div class="empty-state"><p>⭐ No games loaded yet</p><p class="hint">Load today's picks first</p></div>`;
+            return;
+        }
+
+        container.innerHTML = `<div class="best-picks-loading"><span>⭐</span> Gathering best picks across all games...</div>`;
+
+        // Collect all players from all games
+        const allPicks = [];
+
+        await Promise.allSettled(this.games.map(async game => {
+            const homeAbbr = game.teams.home.team.abbreviation;
+            const awayAbbr = game.teams.away.team.abbreviation;
+            const homeTeamId = game.teams.home.team.id;
+            const awayTeamId = game.teams.away.team.id;
+            const awayPitcher = game.teams.away.probablePitcher;
+            const homePitcher = game.teams.home.probablePitcher;
+            const parkInfo = getParkFactor(homeAbbr);
+            const weatherData = this.weatherCache[homeAbbr] || null;
+            const weatherScore = weatherData?.impact?.score ?? 0;
+
+            const [homePlayers, awayPlayers] = await Promise.all([
+                mlbApi.getRealTeamHitters(homeTeamId, homeAbbr, awayPitcher),
+                mlbApi.getRealTeamHitters(awayTeamId, awayAbbr, homePitcher)
+            ]);
+
+            const players = [
+                ...homePlayers.map(p => ({ ...p, team: homeAbbr, teamName: game.teams.home.team.name, game })),
+                ...awayPlayers.map(p => ({ ...p, team: awayAbbr, teamName: game.teams.away.team.name, game }))
+            ];
+
+            players.forEach(player => {
+                const rec = calculateRecommendationWithWeather(
+                    parkInfo.factor, player.seasonHRs, player.last7HRs, player.pitcher, weatherScore
+                );
+                if (rec && rec.score >= 6) {
+                    allPicks.push({
+                        ...player,
+                        recommendation: rec,
+                        parkFactor: parkInfo.factor,
+                        parkName: parkInfo.name,
+                        weatherImpact: weatherData?.impact || null,
+                        gameLabel: `${game.teams.away.team.abbreviation} @ ${game.teams.home.team.abbreviation}`
+                    });
+                }
+            });
+        }));
+
+        // Sort by confidence score descending
+        allPicks.sort((a, b) => b.recommendation.score - a.recommendation.score);
+
+        if (allPicks.length === 0) {
+            container.innerHTML = `<div class="empty-state"><p>⭐ No strong picks found today</p><p class="hint">Try checking back once lineups are set</p></div>`;
+            return;
+        }
+
+        container.innerHTML = `
+            <div class="best-picks-header">
+                <span class="best-picks-title">⭐ Top ${allPicks.length} Picks Today</span>
+                <span class="best-picks-sub">Sorted by confidence score</span>
+            </div>
+            ${allPicks.map((player, idx) => this.renderBestPickRow(player, idx)).join('')}
+        `;
+    }
+
+    renderBestPickRow(player, idx) {
+        const rec = player.recommendation;
+        const isSelected = this.currentParlay.some(p => p.id === player.id);
+        const tierClass = rec.class === 'elite' ? 'best-row-elite' : rec.class === 'top-pick' ? 'best-row-top' : 'best-row-good';
+        const matchupLabel = player.pitcher
+            ? `vs ${player.pitcher.name.split(' ').pop()} (${player.pitcher.hand}HP)`
+            : '';
+        const weatherStr = player.weatherImpact && player.weatherImpact.score !== 0
+            ? `<span class="best-weather ${player.weatherImpact.score > 0 ? 'best-weather-pos' : 'best-weather-neg'}">${player.weatherImpact.score > 0 ? '⚡' : '⚠️'} ${player.weatherImpact.label.replace(/^[^ ]+ /, '')}</span>`
+            : '';
+
+        return `<div class="best-pick-row ${tierClass} ${isSelected ? 'best-row-selected' : ''}"
+                     onclick="app.quickAddFromBest(${JSON.stringify(player.id)}, '${player.gameLabel}')">
+            <div class="best-rank">${idx + 1}</div>
+            <div class="best-info">
+                <div class="best-name">${player.name}</div>
+                <div class="best-meta">
+                    <span class="best-team">${player.teamName}</span>
+                    <span class="best-game">${player.gameLabel}</span>
+                    ${matchupLabel ? `<span class="best-matchup">${matchupLabel}</span>` : ''}
+                </div>
+                <div class="best-stats-row">
+                    <span class="best-stat"><span class="best-stat-lbl">HRs</span> ${player.seasonHRs}</span>
+                    <span class="best-stat"><span class="best-stat-lbl">L7</span> ${player.last7HRs}</span>
+                    <span class="best-stat"><span class="best-stat-lbl">AVG</span> ${player.avg}</span>
+                    <span class="best-stat"><span class="best-stat-lbl">Park</span> ${player.parkFactor}</span>
+                </div>
+                ${weatherStr}
+            </div>
+            <div class="best-score-col">
+                <div class="best-score">${rec.score}</div>
+                <div class="best-score-lbl">/ 17</div>
+                <div class="best-rec-badge ${rec.class}">${isSelected ? '✓ Added' : rec.label}</div>
+            </div>
+        </div>`;
+    }
+
+    quickAddFromBest(playerId, gameLabel) {
+        // Find player from cached game data and toggle
+        for (const game of this.games || []) {
+            const allCached = [
+                ...(mlbApi._cache?.[`hitters_${game.teams.home.team.id}`]?.data || []),
+                ...(mlbApi._cache?.[`hitters_${game.teams.away.team.id}`]?.data || [])
+            ];
+            const player = allCached.find(p => p.id === playerId);
+            if (player) {
+                this.togglePlayer({
+                    ...player,
+                    game: gameLabel,
+                    gameDate: game.gameDate,
+                    teamName: player.teamName || '',
+                    parkFactor: getParkFactor(game.teams.home.team.abbreviation)?.factor || 100,
+                    recommendation: player.recommendation
+                });
+                // Re-render best picks to update selected state
+                this.buildBestPicksTab();
+                return;
+            }
+        }
     }
 
     togglePlayer(player) {
