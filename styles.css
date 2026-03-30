@@ -366,26 +366,26 @@ body::before {
 }
 
 .park-badge.hot {
-    background: rgba(200, 116, 58, 0.2);
-    color: var(--neon-pink);
-    border: 2px solid var(--neon-pink);
-    box-shadow: 0 0 10px rgba(200, 116, 58, 0.5);
-    text-shadow: 0 0 5px var(--neon-pink);
+    background: rgba(74, 158, 74, 0.2);
+    color: #7fdf7f;
+    border: 2px solid #7fdf7f;
+    box-shadow: 0 0 10px rgba(74, 158, 74, 0.5);
+    text-shadow: 0 0 5px rgba(127, 223, 127, 0.6);
 }
 
 .park-badge.neutral {
-    background: rgba(255, 255, 0, 0.2);
+    background: rgba(232, 200, 64, 0.15);
     color: var(--neon-yellow);
     border: 2px solid var(--neon-yellow);
-    box-shadow: 0 0 10px rgba(255, 255, 0, 0.3);
+    box-shadow: 0 0 8px rgba(232, 200, 64, 0.3);
 }
 
 .park-badge.cold {
-    background: rgba(74, 158, 74, 0.2);
-    color: var(--neon-cyan);
-    border: 2px solid var(--neon-cyan);
-    box-shadow: 0 0 10px rgba(74, 158, 74, 0.5);
-    text-shadow: 0 0 5px var(--neon-cyan);
+    background: rgba(200, 116, 58, 0.2);
+    color: #c8743a;
+    border: 2px solid #c8743a;
+    box-shadow: 0 0 10px rgba(200, 116, 58, 0.4);
+    text-shadow: 0 0 5px rgba(200, 116, 58, 0.5);
 }
 
 .players-list {

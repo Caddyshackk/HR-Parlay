@@ -906,61 +906,66 @@ class HRParlayApp {
 
         container.innerHTML = `<div class="best-picks-loading"><span>⭐</span> Gathering best picks across all games...</div>`;
 
-        // Collect all players from all games
         const allPicks = [];
 
-        await Promise.allSettled(this.games.map(async game => {
-            const homeAbbr = game.teams.home.team.abbreviation;
-            const awayAbbr = game.teams.away.team.abbreviation;
-            const homeTeamId = game.teams.home.team.id;
-            const awayTeamId = game.teams.away.team.id;
-            const awayPitcher = game.teams.away.probablePitcher;
-            const homePitcher = game.teams.home.probablePitcher;
-            const parkInfo = getParkFactor(homeAbbr);
-            const weatherData = this.weatherCache[homeAbbr] || null;
-            const weatherScore = weatherData?.impact?.score ?? 0;
+        // Process games sequentially to avoid hammering the API
+        for (const game of this.games) {
+            try {
+                const homeAbbr = game.teams.home.team.abbreviation;
+                const awayAbbr = game.teams.away.team.abbreviation;
+                const homeTeamId = game.teams.home.team.id;
+                const awayTeamId = game.teams.away.team.id;
+                const awayPitcher = game.teams.away.probablePitcher;
+                const homePitcher = game.teams.home.probablePitcher;
+                const parkInfo = getParkFactor(homeAbbr);
+                const weatherData = this.weatherCache[homeAbbr] || null;
+                const weatherScore = weatherData?.impact?.score ?? 0;
 
-            const [homePlayers, awayPlayers] = await Promise.all([
-                mlbApi.getRealTeamHitters(homeTeamId, homeAbbr, awayPitcher),
-                mlbApi.getRealTeamHitters(awayTeamId, awayAbbr, homePitcher)
-            ]);
+                const [homePlayers, awayPlayers] = await Promise.all([
+                    mlbApi.getRealTeamHitters(homeTeamId, homeAbbr, awayPitcher),
+                    mlbApi.getRealTeamHitters(awayTeamId, awayAbbr, homePitcher)
+                ]);
 
-            const players = [
-                ...homePlayers.map(p => ({ ...p, team: homeAbbr, teamName: game.teams.home.team.name, game })),
-                ...awayPlayers.map(p => ({ ...p, team: awayAbbr, teamName: game.teams.away.team.name, game }))
-            ];
+                const players = [
+                    ...homePlayers.map(p => ({ ...p, team: homeAbbr, teamName: game.teams.home.team.name })),
+                    ...awayPlayers.map(p => ({ ...p, team: awayAbbr, teamName: game.teams.away.team.name }))
+                ];
 
-            players.forEach(player => {
-                const rec = calculateRecommendationWithWeather(
-                    parkInfo.factor, player.seasonHRs, player.last7HRs, player.pitcher, weatherScore
-                );
-                if (rec && rec.score >= 6) {
-                    allPicks.push({
-                        ...player,
-                        recommendation: rec,
-                        parkFactor: parkInfo.factor,
-                        parkName: parkInfo.name,
-                        weatherImpact: weatherData?.impact || null,
-                        gameLabel: `${game.teams.away.team.abbreviation} @ ${game.teams.home.team.abbreviation}`
-                    });
-                }
-            });
-        }));
+                players.forEach(player => {
+                    const rec = calculateRecommendationWithWeather(
+                        parkInfo.factor, player.seasonHRs, player.last7HRs, player.pitcher, weatherScore
+                    );
+                    if (rec) {
+                        allPicks.push({
+                            ...player,
+                            recommendation: rec,
+                            parkFactor: parkInfo.factor,
+                            parkName: parkInfo.name,
+                            weatherImpact: weatherData?.impact || null,
+                            gameLabel: `${awayAbbr} @ ${homeAbbr}`
+                        });
+                    }
+                });
+            } catch (e) {
+                continue;
+            }
+        }
 
-        // Sort by confidence score descending
+        // Sort by score, take top 20
         allPicks.sort((a, b) => b.recommendation.score - a.recommendation.score);
+        const topPicks = allPicks.slice(0, 20);
 
-        if (allPicks.length === 0) {
-            container.innerHTML = `<div class="empty-state"><p>⭐ No strong picks found today</p><p class="hint">Try checking back once lineups are set</p></div>`;
+        if (topPicks.length === 0) {
+            container.innerHTML = `<div class="empty-state"><p>⭐ No picks found today</p><p class="hint">Try checking back once lineups are announced</p></div>`;
             return;
         }
 
         container.innerHTML = `
             <div class="best-picks-header">
-                <span class="best-picks-title">⭐ Top ${allPicks.length} Picks Today</span>
+                <span class="best-picks-title">⭐ Top ${topPicks.length} Picks Today</span>
                 <span class="best-picks-sub">Sorted by confidence score</span>
             </div>
-            ${allPicks.map((player, idx) => this.renderBestPickRow(player, idx)).join('')}
+            ${topPicks.map((player, idx) => this.renderBestPickRow(player, idx)).join('')}
         `;
     }
 
