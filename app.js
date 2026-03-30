@@ -670,7 +670,7 @@ class HRParlayApp {
                             <span>Confidence Score</span>
                             <span style="color: var(--accent);">${rec.score}/17</span>
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; font-size: 0.75rem;">
+                        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; font-size: 0.75rem;">
                             <div>
                                 <div style="color: var(--text-muted);">Park</div>
                                 <div style="color: var(--text); font-weight: 600;">${rec.breakdown.park}</div>
@@ -687,6 +687,10 @@ class HRParlayApp {
                                 <div style="color: var(--text-muted);">Matchup</div>
                                 <div style="color: var(--text); font-weight: 600;">${rec.breakdown.matchup}</div>
                             </div>
+                        </div>
+                        <div>
+                            <div style="color: var(--text-muted);">Weather</div>
+                            <div style="color: var(--text); font-weight: 600;">${rec.breakdown.weather ?? 0}</div>
                         </div>
                     </div>
                 </div>
@@ -1349,29 +1353,51 @@ class HRParlayApp {
 }
 
 // Weather-aware wrapper for calculateRecommendation
-// Intercepts the call and adds weatherScore to the result
+// Rebalanced recommendation wrapper
+// Original calculateRecommendation scores: park (0-4), power (0-4), form (0-4), matchup (0-5) = 0-17
+// Reweighting: matchup boosted, park/weather dampened
 const _originalCalcRec = typeof calculateRecommendation === 'function' ? calculateRecommendation : null;
 function calculateRecommendationWithWeather(parkFactor, seasonHRs, last7HRs, pitcher, weatherScore = 0) {
-    // Call original
     const rec = _originalCalcRec
         ? _originalCalcRec(parkFactor, seasonHRs, last7HRs, pitcher)
         : { score: 0, label: 'N/A', class: '', breakdown: {}, bonuses: [] };
 
     if (!rec) return rec;
 
-    // Add weather to score and breakdown
-    const adjustedScore = Math.min(17, Math.max(0, (rec.score || 0) + weatherScore));
-    const weatherBonus = weatherScore >= 2 ? [{ icon: '⚡', text: 'Great HR weather', type: 'good' }]
-                       : weatherScore >= 1 ? [{ icon: '✅', text: 'Favorable weather', type: 'good' }]
-                       : weatherScore <= -2 ? [{ icon: '⛔', text: 'Tough weather', type: 'bad' }]
-                       : weatherScore <= -1 ? [{ icon: '⚠️', text: 'Weather hurts power', type: 'bad' }]
+    const breakdown = rec.breakdown || {};
+
+    // ── Reweight components ───────────────────────────────────────────────────
+    // Park: cap contribution at 2 instead of 4 (still matters, not dominant)
+    const parkAdj    = Math.min(breakdown.park || 0, 2);
+    // Power (recent form + season HRs): keep full weight
+    const powerAdj   = breakdown.power || 0;
+    // Form (last 7 days): keep full weight
+    const formAdj    = breakdown.form || 0;
+    // Matchup (pitcher vs batter): boost by 1.5x, cap at 7
+    const matchupAdj = Math.min(Math.round((breakdown.matchup || 0) * 1.5), 7);
+    // Weather: halve the impact (-2 to +2 instead of -4 to +4)
+    const weatherAdj = weatherScore !== 0 ? Math.round(weatherScore * 0.5) : 0;
+
+    const newScore = Math.min(17, Math.max(0,
+        parkAdj + powerAdj + formAdj + matchupAdj + weatherAdj
+    ));
+
+    // Weather bonus tag — only show if meaningful after dampening
+    const weatherBonus = weatherAdj >= 1 ? [{ icon: '⚡', text: 'Favorable weather', type: 'good' }]
+                       : weatherAdj <= -1 ? [{ icon: '⚠️', text: 'Weather hurts power', type: 'bad' }]
                        : [];
 
     return {
         ...rec,
-        score: adjustedScore,
+        score: newScore,
         bonuses: [...(rec.bonuses || []), ...weatherBonus],
-        breakdown: { ...(rec.breakdown || {}), weather: weatherScore }
+        breakdown: {
+            park:    parkAdj,
+            power:   powerAdj,
+            form:    formAdj,
+            matchup: matchupAdj,
+            weather: weatherAdj
+        }
     };
 }
 
