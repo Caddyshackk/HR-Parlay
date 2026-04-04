@@ -1,7 +1,5 @@
 // BallDontLie MLB API — proxied through Cloudflare Worker
-// Set your worker URL below after deploying worker.js to Cloudflare
-
-const WORKER_URL = 'https://hr-parlay-proxy.YOUR-SUBDOMAIN.workers.dev'; // ← replace this
+// WORKER_URL is defined in oddsApi.js — set it there
 
 class BallDontLieAPI {
     constructor() {
