@@ -198,17 +198,27 @@ async getRealTeamHitters(teamId, teamAbbr, opposingPitcher) {
 async enrichLast7HRs(hitters, season) {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const cutoff = sevenDaysAgo.toISOString().split('T')[0];
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    const parseGameDate = (dateStr) => {
+        if (!dateStr) return null;
+        // Handle MM/DD/YYYY format from MLB API
+        if (dateStr.includes('/')) {
+            const [m, d, y] = dateStr.split('/');
+            return new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+        }
+        // Handle YYYY-MM-DD format
+        return new Date(dateStr + 'T00:00:00');
+    };
 
     await Promise.allSettled(hitters.map(async hitter => {
         try {
-            const cacheKey = `last7_${hitter.id}_${cutoff}`;
+            const cacheKey = `last7_${hitter.id}_${season}`;
             if (this._cache[cacheKey] && Date.now() - this._cache[cacheKey].time < 10 * 60 * 1000) {
                 hitter.last7HRs = this._cache[cacheKey].data;
                 return;
             }
 
-            // MLB API doesn't support startDate on gameLog — fetch all and filter
             const url = `${this.baseUrl}/people/${hitter.id}/stats` +
                 `?stats=gameLog&group=hitting&season=${season}`;
             const res = await fetch(url);
@@ -217,14 +227,23 @@ async enrichLast7HRs(hitters, season) {
             const data = await res.json();
             const logs = data?.stats?.[0]?.splits || [];
 
-            // Filter to last 7 days client-side
-            const recent = logs.filter(g => g.date >= cutoff);
+            // Filter to last 7 days using parsed dates
+            const recent = logs.filter(g => {
+                const d = parseGameDate(g.date);
+                return d && d >= sevenDaysAgo;
+            });
+
             const hrs = recent.reduce((sum, g) => sum + (g.stat?.homeRuns || 0), 0);
+
+            // Debug log so we can verify in console
+            if (logs.length > 0) {
+                console.log(`${hitter.name}: ${logs.length} games, ${recent.length} in last 7 days, ${hrs} HRs. Sample date: "${logs[0].date}"`);
+            }
 
             hitter.last7HRs = hrs;
             this._cache[cacheKey] = { data: hrs, time: Date.now() };
         } catch (e) {
-            // leave as 0
+            console.warn(`last7HRs failed for ${hitter.name}:`, e.message);
         }
     }));
 }
