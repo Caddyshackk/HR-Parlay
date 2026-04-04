@@ -157,25 +157,37 @@ class MLBApi {
                 const splits = data?.stats?.[0]?.splits || [];
 
                 const hitters = splits
-                    .filter(s => (s.stat?.atBats || 0) >= 20 && s.player?.fullName)
+                    .filter(s => (s.stat?.atBats || 0) >= 1 && s.player?.fullName)
                     .sort((a, b) => (b.stat?.homeRuns || 0) - (a.stat?.homeRuns || 0))
                     .slice(0, 8)
-                    .map(s => ({
-                        id: s.player.id,
-                        name: s.player.fullName,
-                        seasonHRs: s.stat.homeRuns || 0,
-                        doubles: s.stat.doubles || 0,
-                        triples: s.stat.triples || 0,
-                        xbh: (s.stat.doubles || 0) + (s.stat.triples || 0) + (s.stat.homeRuns || 0),
-                        last7HRs: 0, // filled in below
-                        avg: s.stat.avg ? s.stat.avg.replace(/^0/, '') : '.000',
-                        hand: s.player.batSide?.code || 'R',
-                        atBats: s.stat.atBats || 0,
-                        gamesPlayed: s.stat.gamesPlayed || 0,
-                        obp: s.stat.obp ? s.stat.obp.replace(/^0/, '') : null,
-                        slg: s.stat.slg ? s.stat.slg.replace(/^0/, '') : null,
-                        ops: s.stat.ops ? s.stat.ops.replace(/^0/, '') : null,
-                    }));
+                    .map(s => {
+                        const seasonHRs = s.stat.homeRuns || 0;
+                        const atBats = s.stat.atBats || 0;
+                        // Early season: project HRs over full season based on rate
+                        // This gives power scoring meaningful signal even with 10 ABs
+                        const projectedHRs = atBats >= 30
+                            ? seasonHRs
+                            : Math.round((seasonHRs / Math.max(atBats, 1)) * 550);
+
+                        return {
+                            id: s.player.id,
+                            name: s.player.fullName,
+                            seasonHRs: projectedHRs, // used for power scoring
+                            displayHRs: seasonHRs,   // shown to user
+                            doubles: s.stat.doubles || 0,
+                            triples: s.stat.triples || 0,
+                            xbh: (s.stat.doubles || 0) + (s.stat.triples || 0) + seasonHRs,
+                            last7HRs: 0,
+                            avg: s.stat.avg ? s.stat.avg.replace(/^0/, '') : '.000',
+                            hand: s.player.batSide?.code || 'R',
+                            atBats,
+                            gamesPlayed: s.stat.gamesPlayed || 0,
+                            obp: s.stat.obp ? s.stat.obp.replace(/^0/, '') : null,
+                            slg: s.stat.slg ? s.stat.slg.replace(/^0/, '') : null,
+                            ops: s.stat.ops ? s.stat.ops.replace(/^0/, '') : null,
+                            earlySeasonProjected: atBats < 30,
+                        };
+                    });
 
                 if (hitters.length > 0) {
                     // Fetch last-7-days game logs for all players in parallel

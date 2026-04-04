@@ -643,7 +643,7 @@ class HRParlayApp {
                     <div class="player-stats">
                         <div class="stat-item">
                             <span class="stat-label">Season HRs</span>
-                            <span class="stat-value">${player.seasonHRs}</span>
+                            <span class="stat-value">${player.displayHRs ?? player.seasonHRs}${player.earlySeasonProjected ? '<span style="font-size:0.6rem;color:var(--text-muted);margin-left:2px;" title="Projected pace">~</span>' : ''}</span>
                         </div>
                         <div class="stat-item">
                             <span class="stat-label">Last 7 Days</span>
@@ -991,7 +991,7 @@ class HRParlayApp {
                     ${matchupLabel ? `<span class="best-matchup">${matchupLabel}</span>` : ''}
                 </div>
                 <div class="best-stats-row">
-                    <span class="best-stat"><span class="best-stat-lbl">HRs</span> ${player.seasonHRs}</span>
+                    <span class="best-stat"><span class="best-stat-lbl">HRs</span> ${player.displayHRs ?? player.seasonHRs}</span>
                     <span class="best-stat"><span class="best-stat-lbl">L7</span> ${player.last7HRs}</span>
                     <span class="best-stat"><span class="best-stat-lbl">AVG</span> ${player.avg}</span>
                     <span class="best-stat"><span class="best-stat-lbl">Park</span> ${player.parkFactor}</span>
