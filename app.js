@@ -1,4 +1,3 @@
-
 // Main App Logic
 class HRParlayApp {
     constructor() {
@@ -869,31 +868,31 @@ class HRParlayApp {
             <div class="adv-section-label">💥 Extra Base Hits</div>
             <div class="adv-grid">
                 <div class="adv-stat">
-                    <div class="adv-val \${xbhClass}">\${xbh}</div>
+                    <div class="adv-val ${xbhClass}">${xbh}</div>
                     <div class="adv-lbl">Total XBH</div>
                 </div>
                 <div class="adv-stat">
-                    <div class="adv-val \${hrClass}">\${hrs}</div>
+                    <div class="adv-val ${hrClass}">${hrs}</div>
                     <div class="adv-lbl">Home Runs</div>
                 </div>
                 <div class="adv-stat">
-                    <div class="adv-val">\${dbl}</div>
+                    <div class="adv-val">${dbl}</div>
                     <div class="adv-lbl">Doubles</div>
                 </div>
                 <div class="adv-stat">
-                    <div class="adv-val">\${trp}</div>
+                    <div class="adv-val">${trp}</div>
                     <div class="adv-lbl">Triples</div>
                 </div>
                 <div class="adv-stat">
-                    <div class="adv-val">\${xbhPerGame}</div>
+                    <div class="adv-val">${xbhPerGame}</div>
                     <div class="adv-lbl">XBH/Game</div>
                 </div>
                 <div class="adv-stat">
-                    <div class="adv-val">\${xbhPct}%</div>
+                    <div class="adv-val">${xbhPct}%</div>
                     <div class="adv-lbl">XBH Rate</div>
                 </div>
             </div>
-            <div class="adv-pa-note">XBH = HR + 2B + 3B · \${gp} games played · \${ab} at bats</div>
+            <div class="adv-pa-note">XBH = HR + 2B + 3B · ${gp} games played · ${ab} at bats</div>
         `;
     }
 
