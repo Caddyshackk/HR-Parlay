@@ -741,20 +741,31 @@ class HRParlayApp {
 
         // Lazy load advanced stats on first open
         if (tab === 'advanced' && playerId) {
-            const statsEl  = document.getElementById(`adv-stats-${cardId}`);
+            const statsEl   = document.getElementById(`adv-stats-${cardId}`);
             const loadingEl = document.getElementById(`adv-loading-${cardId}`);
 
-            // Only fetch if not already loaded
             if (statsEl.dataset.loaded !== 'true') {
+                // Look up full player object from mlbApi cache
+                let cachedPlayer = null;
+                if (mlbApi._cache) {
+                    for (const key of Object.keys(mlbApi._cache)) {
+                        if (!key.startsWith('hitters_')) continue;
+                        const found = mlbApi._cache[key].data?.find(p => p.id === playerId);
+                        if (found) { cachedPlayer = found; break; }
+                    }
+                }
+
+                const xbhHTML = cachedPlayer ? this.buildXBHStatsHTML(cachedPlayer) : '';
+
                 mlbApi.getAdvancedStats(playerId).then(stats => {
                     loadingEl.style.display = 'none';
                     statsEl.style.display = '';
-                    statsEl.innerHTML = this.buildXBHStatsHTML(player) + this.buildAdvancedStatsHTML(stats);
+                    statsEl.innerHTML = xbhHTML + this.buildAdvancedStatsHTML(stats);
                     statsEl.dataset.loaded = 'true';
                 }).catch(() => {
                     loadingEl.style.display = 'none';
                     statsEl.style.display = '';
-                    statsEl.innerHTML = this.buildXBHStatsHTML(player) + '<div class="adv-unavailable"><div class="adv-unavailable-sub">Statcast data unavailable</div></div>';
+                    statsEl.innerHTML = xbhHTML + '<div class="adv-unavailable"><div class="adv-unavailable-sub">Statcast data unavailable</div></div>';
                     statsEl.dataset.loaded = 'true';
                 });
             }
