@@ -1,7 +1,7 @@
 // Odds API Integration — proxied through Cloudflare Worker
 // Set your worker URL below after deploying worker.js to Cloudflare
 
-const WORKER_URL = 'https://hr-parlay-proxy.caddyshackkidd.workers.dev'; // ← replace this
+const WORKER_URL = 'https://hr-parlay-proxy.YOUR-SUBDOMAIN.workers.dev'; // ← replace this
 
 class OddsAPI {
     constructor() {

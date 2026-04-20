@@ -503,7 +503,8 @@ class HRParlayApp {
                 player.seasonHRs,
                 player.last7HRs,
                 player.pitcher,
-                weatherScore
+                weatherScore,
+                player.gamesPlayed || 0
             );
             return { ...player, recommendation: rec, parkFactor };
         }).filter(p => p.recommendation) // Only show players with recommendations
@@ -1359,10 +1360,10 @@ class HRParlayApp {
 
 // Weather-aware wrapper for calculateRecommendation
 // Rebalanced recommendation wrapper
-// Original calculateRecommendation scores: park (0-4), power (0-4), form (0-4), matchup (0-5) = 0-17
-// Reweighting: matchup boosted, park/weather dampened
+// Original: park(0-4) + power(0-4) + form(0-4) + matchup(0-5) = 0-17
+// Form is overridden to use HR rate vs season pace rather than raw last7 count
 const _originalCalcRec = typeof calculateRecommendation === 'function' ? calculateRecommendation : null;
-function calculateRecommendationWithWeather(parkFactor, seasonHRs, last7HRs, pitcher, weatherScore = 0) {
+function calculateRecommendationWithWeather(parkFactor, seasonHRs, last7HRs, pitcher, weatherScore = 0, gamesPlayed = 0) {
     const rec = _originalCalcRec
         ? _originalCalcRec(parkFactor, seasonHRs, last7HRs, pitcher)
         : { score: 0, label: 'N/A', class: '', breakdown: {}, bonuses: [] };
@@ -1371,31 +1372,56 @@ function calculateRecommendationWithWeather(parkFactor, seasonHRs, last7HRs, pit
 
     const breakdown = rec.breakdown || {};
 
-    // ── Reweight components ───────────────────────────────────────────────────
-    // Park: cap contribution at 2 instead of 4 (still matters, not dominant)
-    const parkAdj    = Math.min(breakdown.park || 0, 2);
-    // Power (recent form + season HRs): keep full weight
-    const powerAdj   = breakdown.power || 0;
-    // Form (last 7 days): keep full weight
-    const formAdj    = breakdown.form || 0;
-    // Matchup (pitcher vs batter): boost by 1.5x, cap at 7
-    const matchupAdj = Math.min(Math.round((breakdown.matchup || 0) * 1.5), 7);
-    // Weather: halve the impact (-2 to +2 instead of -4 to +4)
-    const weatherAdj = weatherScore !== 0 ? Math.round(weatherScore * 0.5) : 0;
+    // Park: slightly reduced max (3 vs 4)
+    const parkAdj = Math.min(breakdown.park || 0, 3);
+
+    // Power: full weight
+    const powerAdj = breakdown.power || 0;
+
+    // Form: relative pace — is the player running HOT vs their season average?
+    // Season rate: HRs per game overall
+    // Last 7 rate: last7HRs / 7 days (approx 6 games)
+    let formAdj = 0;
+    const gp = gamesPlayed || Math.max(1, seasonHRs > 0 ? Math.round(seasonHRs / 0.18) : 20);
+    const seasonRate = seasonHRs / Math.max(gp, 1);         // HRs per game, season
+    const recentRate = last7HRs / 6;                        // HRs per game, last ~6 games
+
+    if (seasonRate > 0) {
+        const hotFactor = recentRate / seasonRate;           // >1 = running hot, <1 = cold
+        if (hotFactor >= 2.5)      formAdj = 4;             // scorching — 2.5x+ their normal pace
+        else if (hotFactor >= 1.5) formAdj = 3;             // hot — 1.5x pace
+        else if (hotFactor >= 1.0) formAdj = 2;             // on pace
+        else if (hotFactor >= 0.5) formAdj = 1;             // slightly cold
+        else                       formAdj = 0;             // cold streak
+    } else {
+        // No season HRs yet — use raw last7 as fallback
+        formAdj = last7HRs >= 3 ? 4 : last7HRs >= 2 ? 3 : last7HRs >= 1 ? 2 : 0;
+    }
+
+    // Matchup: 1.4x boost, cap 7
+    const matchupAdj = Math.min(Math.round((breakdown.matchup || 0) * 1.4), 7);
+
+    // Weather: modest nudge only
+    const weatherAdj = weatherScore >= 2 ? 1 : weatherScore <= -2 ? -1 : 0;
 
     const newScore = Math.min(17, Math.max(0,
         parkAdj + powerAdj + formAdj + matchupAdj + weatherAdj
     ));
 
-    // Weather bonus tag — only show if meaningful after dampening
+    const formLabel = formAdj >= 4 ? '🔥 Scorching' : formAdj >= 3 ? '📈 Hot streak'
+                    : formAdj >= 2 ? 'On pace' : formAdj >= 1 ? 'Slightly cold' : '🥶 Cold';
+
     const weatherBonus = weatherAdj >= 1 ? [{ icon: '⚡', text: 'Favorable weather', type: 'good' }]
                        : weatherAdj <= -1 ? [{ icon: '⚠️', text: 'Weather hurts power', type: 'bad' }]
                        : [];
+    const formBonus = formAdj >= 3 ? [{ icon: formAdj >= 4 ? '🔥' : '📈', text: formLabel, type: 'good' }]
+                    : formAdj === 0 && last7HRs === 0 ? [{ icon: '🥶', text: 'Cold streak', type: 'bad' }]
+                    : [];
 
     return {
         ...rec,
         score: newScore,
-        bonuses: [...(rec.bonuses || []), ...weatherBonus],
+        bonuses: [...(rec.bonuses || []), ...weatherBonus, ...formBonus],
         breakdown: {
             park:    parkAdj,
             power:   powerAdj,
