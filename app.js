@@ -220,7 +220,7 @@ class HRParlayApp {
             }
 
             const hasPick = this.currentParlay.some(p =>
-                p.game && p.game.includes(game.teams.home.team.name)
+                p.game && (p.game.includes(game.teams.home.team.abbreviation) || p.game.includes(game.teams.home.team.name))
             );
 
             const chip = document.createElement('button');
@@ -705,18 +705,22 @@ class HRParlayApp {
                 </div>
 
             </div>
-            <div class="recommendation ${rec.class}">
-                ${rec.label}
+            <div class="card-bottom">
+                <div class="recommendation ${rec.class}">
+                    ${rec.label}
+                </div>
+                <div class="card-add-buttons">
+                    <button class="add-bet-btn add-hr-btn ${this.currentParlay.some(p => p.id === player.id && p.betType === 'HR') ? 'btn-added' : ''}"
+                        onclick="app.addBet(event, ${player.id}, 'HR', '${game.teams.away.team.name} @ ${game.teams.home.team.name}', '${game.gameDate}')">
+                        ${this.currentParlay.some(p => p.id === player.id && p.betType === 'HR') ? '✓ HR' : '⚾ HR'}
+                    </button>
+                    <button class="add-bet-btn add-xbh-btn ${this.currentParlay.some(p => p.id === player.id && p.betType === 'XBH') ? 'btn-added' : ''}"
+                        onclick="app.addBet(event, ${player.id}, 'XBH', '${game.teams.away.team.name} @ ${game.teams.home.team.name}', '${game.gameDate}')">
+                        ${this.currentParlay.some(p => p.id === player.id && p.betType === 'XBH') ? '✓ XBH' : '📊 XBH'}
+                    </button>
+                </div>
             </div>
         `;
-
-        playerCard.addEventListener('click', () => {
-            this.togglePlayer({
-                ...player,
-                game: `${game.teams.away.team.name} @ ${game.teams.home.team.name}`,
-                gameDate: game.gameDate
-            });
-        });
 
         container.appendChild(playerCard);
     }
@@ -745,10 +749,13 @@ class HRParlayApp {
                 mlbApi.getAdvancedStats(playerId).then(stats => {
                     loadingEl.style.display = 'none';
                     statsEl.style.display = '';
-                    statsEl.innerHTML = this.buildAdvancedStatsHTML(stats);
+                    statsEl.innerHTML = this.buildXBHStatsHTML(player) + this.buildAdvancedStatsHTML(stats);
                     statsEl.dataset.loaded = 'true';
                 }).catch(() => {
-                    loadingEl.innerHTML = '<span style="color:var(--text-muted);font-size:0.8rem;">Advanced stats unavailable</span>';
+                    loadingEl.style.display = 'none';
+                    statsEl.style.display = '';
+                    statsEl.innerHTML = this.buildXBHStatsHTML(player) + '<div class="adv-unavailable"><div class="adv-unavailable-sub">Statcast data unavailable</div></div>';
+                    statsEl.dataset.loaded = 'true';
                 });
             }
         }
@@ -828,6 +835,53 @@ class HRParlayApp {
             </div>
 
             <div class="adv-pa-note">Based on ${stats.pa || '?'} plate appearances · via Baseball Savant</div>
+        `;
+    }
+
+    buildXBHStatsHTML(player) {
+        const hrs  = player.displayHRs ?? player.seasonHRs ?? 0;
+        const xbh  = player.xbh ?? 0;
+        const dbl  = player.doubles ?? 0;
+        const trp  = player.triples ?? 0;
+        const gp   = player.gamesPlayed || 0;
+        const ab   = player.atBats || 0;
+
+        const xbhPerGame = gp > 0 ? (xbh / gp).toFixed(2) : '—';
+        const hrPct  = ab > 0 ? ((hrs / ab) * 100).toFixed(1) : '—';
+        const xbhPct = ab > 0 ? ((xbh / ab) * 100).toFixed(1) : '—';
+
+        const xbhClass = xbh >= 40 ? 'adv-great' : xbh >= 25 ? 'adv-good' : 'adv-avg';
+        const hrClass  = hrs >= 20 ? 'adv-great' : hrs >= 10 ? 'adv-good' : 'adv-avg';
+
+        return `
+            <div class="adv-section-label">💥 Extra Base Hits</div>
+            <div class="adv-grid">
+                <div class="adv-stat">
+                    <div class="adv-val \${xbhClass}">\${xbh}</div>
+                    <div class="adv-lbl">Total XBH</div>
+                </div>
+                <div class="adv-stat">
+                    <div class="adv-val \${hrClass}">\${hrs}</div>
+                    <div class="adv-lbl">Home Runs</div>
+                </div>
+                <div class="adv-stat">
+                    <div class="adv-val">\${dbl}</div>
+                    <div class="adv-lbl">Doubles</div>
+                </div>
+                <div class="adv-stat">
+                    <div class="adv-val">\${trp}</div>
+                    <div class="adv-lbl">Triples</div>
+                </div>
+                <div class="adv-stat">
+                    <div class="adv-val">\${xbhPerGame}</div>
+                    <div class="adv-lbl">XBH/Game</div>
+                </div>
+                <div class="adv-stat">
+                    <div class="adv-val">\${xbhPct}%</div>
+                    <div class="adv-lbl">XBH Rate</div>
+                </div>
+            </div>
+            <div class="adv-pa-note">XBH = HR + 2B + 3B · \${gp} games played · \${ab} at bats</div>
         `;
     }
 
@@ -1031,15 +1085,51 @@ class HRParlayApp {
         }
     }
 
+    addBet(event, playerId, betType, gameLabel, gameDate) {
+        event.stopPropagation();
+
+        // Find player from cached data
+        let foundPlayer = null;
+        for (const game of this.games || []) {
+            const homeCache = mlbApi._cache?.[`hitters_${game.teams.home.team.id}`]?.data || [];
+            const awayCache = mlbApi._cache?.[`hitters_${game.teams.away.team.id}`]?.data || [];
+            foundPlayer = [...homeCache, ...awayCache].find(p => p.id === playerId);
+            if (foundPlayer) break;
+        }
+        if (!foundPlayer) return;
+
+        // Check if this exact player+betType combo already exists
+        const existingIndex = this.currentParlay.findIndex(p => p.id === playerId && p.betType === betType);
+        if (existingIndex > -1) {
+            // Remove it
+            this.currentParlay.splice(existingIndex, 1);
+        } else {
+            // Add with bet type
+            this.currentParlay.push({
+                ...foundPlayer,
+                betType,
+                game: gameLabel,
+                gameDate,
+            });
+        }
+
+        this.updateParlayDisplay();
+        if (this.games && this.games.length > 0) {
+            this.renderGameStrip(this.games);
+            this.selectGame(this.activeGamePk || this.games[0].gamePk);
+        }
+    }
+
     togglePlayer(player) {
-        const index = this.currentParlay.findIndex(p => p.id === player.id);
+        // Legacy method — used by best picks tab
+        const betType = player.betType || 'HR';
+        const index = this.currentParlay.findIndex(p => p.id === player.id && p.betType === betType);
         if (index > -1) {
             this.currentParlay.splice(index, 1);
         } else {
-            this.currentParlay.push(player);
+            this.currentParlay.push({ ...player, betType });
         }
         this.updateParlayDisplay();
-        // Re-render strip to update pick dots, then re-select active game
         if (this.games && this.games.length > 0) {
             this.renderGameStrip(this.games);
             this.selectGame(this.activeGamePk || this.games[0].gamePk);
@@ -1078,18 +1168,28 @@ class HRParlayApp {
                 item.className = 'parlay-item';
                 item.innerHTML = `
                     <div class="parlay-item-info">
-                        <div class="parlay-player">${player.name}</div>
+                        <div class="parlay-player">
+                            ${player.name}
+                            <span class="bet-type-badge bet-type-${(player.betType || 'HR').toLowerCase()}">${player.betType || 'HR'}</span>
+                        </div>
                         <div class="parlay-game">${player.game}</div>
                         <div style="margin-top: 0.25rem; font-size: 0.8rem; color: var(--text-muted);">
-                            ${player.seasonHRs} HRs this season | Park: ${player.parkFactor}
+                            ${player.displayHRs ?? player.seasonHRs} HRs · XBH: ${player.xbh || '—'} | Park: ${player.parkFactor}
                         </div>
                     </div>
-                    <button class="remove-btn" data-id="${player.id}">Remove</button>
+                    <button class="remove-btn" data-id="${player.id}-${player.betType || 'HR'}">Remove</button>
                 `;
 
                 item.querySelector('.remove-btn').addEventListener('click', (e) => {
                     e.stopPropagation();
-                    this.togglePlayer(player);
+                    const betType = player.betType || 'HR';
+                    const idx = this.currentParlay.findIndex(p => p.id === player.id && p.betType === betType);
+                    if (idx > -1) this.currentParlay.splice(idx, 1);
+                    this.updateParlayDisplay();
+                    if (this.games?.length > 0) {
+                        this.renderGameStrip(this.games);
+                        this.selectGame(this.activeGamePk || this.games[0].gamePk);
+                    }
                 });
 
                 parlayList.appendChild(item);
