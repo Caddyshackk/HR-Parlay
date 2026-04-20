@@ -1,3 +1,4 @@
+
 // Main App Logic
 class HRParlayApp {
     constructor() {
