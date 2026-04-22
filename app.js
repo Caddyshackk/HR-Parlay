@@ -650,8 +650,8 @@ class HRParlayApp {
                             <span class="stat-value">${player.displayHRs ?? player.seasonHRs}${player.earlySeasonProjected ? '<span style="font-size:0.6rem;color:var(--text-muted);margin-left:2px;" title="Projected pace">~</span>' : ''}</span>
                         </div>
                         <div class="stat-item">
-                            <span class="stat-label">Last 7 Days</span>
-                            <span class="stat-value">${player.last7HRs} HR</span>
+                            <span class="stat-label">HR Pace</span>
+                            <span class="stat-value">${player.gamesPlayed > 0 ? (player.seasonHRs / player.gamesPlayed).toFixed(2) : '—'}</span>
                         </div>
                         <div class="stat-item">
                             <span class="stat-label">AVG</span>
