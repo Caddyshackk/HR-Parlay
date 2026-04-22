@@ -1588,21 +1588,29 @@ function calculateRecommendationWithWeather(parkFactor, seasonHRs, last7HRs, pit
     // ── Power: keep full weight (0-4) ────────────────────────────────────────
     const powerAdj = breakdown.power || 0;
 
-    // ── Form: replace with relative pace comparison ───────────────────────────
-    // This gives meaningful separation: scorching hot = 4, cold = 0
+    // ── Form: relative pace comparison ────────────────────────────────────────
     let formAdj = 0;
     const gp = gamesPlayed || Math.max(1, seasonHRs > 0 ? Math.round(seasonHRs / 0.18) : 20);
     const seasonRate = seasonHRs / Math.max(gp, 1);
     const recentRate = last7HRs / 6;
 
-    if (seasonRate > 0) {
+    if (last7HRs > 0 && seasonRate > 0) {
+        // We have real recent data — use pace comparison
         const hotFactor = recentRate / seasonRate;
         if      (hotFactor >= 2.5) formAdj = 4;   // scorching
         else if (hotFactor >= 1.5) formAdj = 3;   // hot
         else if (hotFactor >= 1.0) formAdj = 2;   // on pace
         else if (hotFactor >= 0.5) formAdj = 1;   // slightly cold
         else                       formAdj = 0;   // cold
+    } else if (last7HRs === 0 && seasonRate > 0) {
+        // No recent HRs recorded — could be API lag or genuinely cold
+        // Give established power hitters (high season rate) a baseline form score
+        // so they aren't unfairly penalized by missing data
+        if      (seasonRate >= 0.25) formAdj = 2;  // elite pace (40+ HR pace), at least "on pace"
+        else if (seasonRate >= 0.18) formAdj = 1;  // solid pace (29+ HR pace)
+        else                         formAdj = 0;  // average or below
     } else {
+        // No season data — use raw last7 as fallback
         formAdj = last7HRs >= 3 ? 4 : last7HRs >= 2 ? 3 : last7HRs >= 1 ? 2 : 0;
     }
 
