@@ -410,7 +410,7 @@ class HRParlayApp {
                     <span class="park-badge ${parkClass}">${parkInfo.factor}</span>
                 </div>
             </div>
-            <div class="park-info" style="padding: 0.75rem 1rem; background: rgba(0,0,0,0.2); font-size: 0.85rem;">
+            <div class="park-info">
                 <div style="color: var(--text); font-weight: 600; margin-bottom: 0.25rem;">
                     📍 ${parkInfo.name}
                 </div>
@@ -627,7 +627,7 @@ class HRParlayApp {
         playerCard.className = `player-card ${cardTierClass} ${isSelected ? 'selected' : ''}`;
         const cardId = `card-${player.id}-${game.gamePk}`;
         playerCard.innerHTML = `
-            <div class="player-info">
+            <div class="player-info" style="flex:1;">
                 <div class="player-name">${player.name}</div>
                 <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">
                     ${player.teamName} • ${player.hand === 'S' ? 'Switch' : player.hand === 'L' ? 'LHB' : 'RHB'}
@@ -666,7 +666,7 @@ class HRParlayApp {
                     </div>
                     ${pitcherHTML}
                     ${bonusHTML}
-                    <div class="score-breakdown" style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border);">
+                    <div class="score-breakdown">
                         <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text); display: flex; justify-content: space-between;">
                             <span>Confidence Score</span>
                             <span style="color: var(--accent);">${rec.score}/17</span>
