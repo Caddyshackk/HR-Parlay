@@ -337,65 +337,53 @@ class HRParlayApp {
                                      (homePitcherHR9 <= 1.0 && homePitcherERA <= 3.5) ? 'pitcher-tough' : 'pitcher-average';
             
             pitcherMatchupHTML = `
-                <div class="game-pitcher-matchup">
-                    <div class="matchup-title">⚾ Starting Pitchers</div>
-                    
-                    <div class="pitcher-row ${awayQualityClass}">
-                        <div class="pitcher-info-section">
-                            <div class="pitcher-name-large">
+                <div class="pitcher-matchup-section">
+                    <div class="section-label">⚾ Starting Pitchers</div>
+
+                    <div class="pitcher-card ${awayQualityClass}">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem;">
+                            <div>
                                 <span class="pitcher-name">${awayPitcher.fullName}</span>
-                                <span class="pitcher-hand-badge ${awayHand === 'L' ? 'hand-left' : 'hand-right'}">${awayHand}HP</span>
+                                <span class="hand-badge ${awayHand === 'L' ? 'hand-left' : 'hand-right'}">${awayHand}HP</span>
                             </div>
-                            <div class="pitcher-team-label">${game.teams.away.team.name}</div>
+                            <div class="pitcher-quality ${awayQualityClass === 'pitcher-favorable' ? 'quality-great' : awayQualityClass === 'pitcher-tough' ? 'quality-tough' : 'quality-average'}">${awayHR9Quality}</div>
                         </div>
-                        
-                        <div class="pitcher-stats-grid">
-                            <div class="stat-box">
-                                <span class="stat-label">ERA</span>
-                                <span class="stat-value ${awayERAClass}">${awayPitcherERA.toFixed(2)}</span>
+                        <div class="pitcher-team" style="margin-bottom:0.4rem;">${game.teams.away.team.name}</div>
+                        <div style="display:flex;gap:1.5rem;">
+                            <div class="pitcher-stat-item">
+                                <div class="pitcher-stat-label">ERA</div>
+                                <div class="pitcher-stat-value">${awayPitcherERA.toFixed(2)}</div>
                             </div>
-                            <div class="stat-box">
-                                <span class="stat-label">HR/9</span>
-                                <span class="stat-value ${awayHR9Class}">${awayPitcherHR9.toFixed(2)}</span>
-                            </div>
-                            <div class="stat-box quality-badge">
-                                ${awayHR9Quality}
+                            <div class="pitcher-stat-item">
+                                <div class="pitcher-stat-label">HR/9</div>
+                                <div class="pitcher-stat-value">${awayPitcherHR9.toFixed(2)}</div>
                             </div>
                         </div>
-                        
-                        <div class="platoon-info">
-                            ${awayHand === 'L' ? '💡 Righty batters have better matchup' : '💡 Lefty batters have better matchup'}
-                        </div>
+                        <div class="platoon-info">${awayHand === 'L' ? '💡 Righty batters have better matchup' : '💡 Lefty batters have better matchup'}</div>
                     </div>
-                    
-                    <div class="vs-divider">VS</div>
-                    
-                    <div class="pitcher-row ${homeQualityClass}">
-                        <div class="pitcher-info-section">
-                            <div class="pitcher-name-large">
+
+                    <div class="pitcher-vs">VS</div>
+
+                    <div class="pitcher-card ${homeQualityClass}">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem;">
+                            <div>
                                 <span class="pitcher-name">${homePitcher.fullName}</span>
-                                <span class="pitcher-hand-badge ${homeHand === 'L' ? 'hand-left' : 'hand-right'}">${homeHand}HP</span>
+                                <span class="hand-badge ${homeHand === 'L' ? 'hand-left' : 'hand-right'}">${homeHand}HP</span>
                             </div>
-                            <div class="pitcher-team-label">${game.teams.home.team.name}</div>
+                            <div class="pitcher-quality ${homeQualityClass === 'pitcher-favorable' ? 'quality-great' : homeQualityClass === 'pitcher-tough' ? 'quality-tough' : 'quality-average'}">${homeHR9Quality}</div>
                         </div>
-                        
-                        <div class="pitcher-stats-grid">
-                            <div class="stat-box">
-                                <span class="stat-label">ERA</span>
-                                <span class="stat-value ${homeERAClass}">${homePitcherERA.toFixed(2)}</span>
+                        <div class="pitcher-team" style="margin-bottom:0.4rem;">${game.teams.home.team.name}</div>
+                        <div style="display:flex;gap:1.5rem;">
+                            <div class="pitcher-stat-item">
+                                <div class="pitcher-stat-label">ERA</div>
+                                <div class="pitcher-stat-value">${homePitcherERA.toFixed(2)}</div>
                             </div>
-                            <div class="stat-box">
-                                <span class="stat-label">HR/9</span>
-                                <span class="stat-value ${homeHR9Class}">${homePitcherHR9.toFixed(2)}</span>
-                            </div>
-                            <div class="stat-box quality-badge">
-                                ${homeHR9Quality}
+                            <div class="pitcher-stat-item">
+                                <div class="pitcher-stat-label">HR/9</div>
+                                <div class="pitcher-stat-value">${homePitcherHR9.toFixed(2)}</div>
                             </div>
                         </div>
-                        
-                        <div class="platoon-info">
-                            ${homeHand === 'L' ? '💡 Righty batters have better matchup' : '💡 Lefty batters have better matchup'}
-                        </div>
+                        <div class="platoon-info">${homeHand === 'L' ? '💡 Righty batters have better matchup' : '💡 Lefty batters have better matchup'}</div>
                     </div>
                 </div>
             `;
@@ -403,22 +391,18 @@ class HRParlayApp {
         
         gameCard.innerHTML = `
             <div class="game-header">
-                <div class="matchup">
-                    ${game.teams.away.team.name} @ ${game.teams.home.team.name}
-                </div>
+                <div class="game-teams">${game.teams.away.team.abbreviation} <span style="color:var(--text-muted);font-weight:400;">@</span> ${game.teams.home.team.abbreviation}<div class="game-time" style="font-size:0.72rem;color:var(--text-muted);font-weight:400;">${game.teams.away.team.name} @ ${game.teams.home.team.name}</div></div>
                 <div class="park-factor">
                     <span class="park-badge ${parkClass}">${parkInfo.factor}</span>
                 </div>
             </div>
             <div class="park-info">
-                <div style="color: var(--text); font-weight: 600; margin-bottom: 0.25rem;">
-                    📍 ${parkInfo.name}
+                <div class="park-name-row">
+                    <span>📍 ${parkInfo.name}</span>
+                    <span class="park-badge ${parkClass}">${parkLabel}</span>
+                    <span class="park-boost ${parkInfo.factor > 100 ? 'positive' : parkInfo.factor < 100 ? 'negative' : ''}">${hrBoost}</span>
                 </div>
-                <div style="color: var(--text-muted); display: flex; justify-content: space-between; flex-wrap: wrap;">
-                    <span>${parkLabel}</span>
-                    <span style="color: ${parkInfo.factor > 100 ? 'var(--success)' : parkInfo.factor < 100 ? '#2196f3' : 'var(--text-muted)'}; font-weight: 600;">${hrBoost}</span>
-                </div>
-                ${parkInfo.notes ? `<div style="margin-top: 0.25rem; font-size: 0.75rem; color: var(--text-muted);">💡 ${parkInfo.notes}</div>` : ''}
+                ${parkInfo.notes ? `<div style="margin-top:0.3rem;font-size:0.68rem;color:var(--text-muted);">💡 ${parkInfo.notes}</div>` : ''}
             </div>
             <div id="weather-${game.gamePk}" class="weather-panel weather-loading">
                 <span class="weather-spinner">🌡️</span> Loading weather...
