@@ -456,56 +456,75 @@ class HRParlayApp {
         const awayTeam = game.teams.away.team.abbreviation;
         const homeTeamId = game.teams.home.team.id;
         const awayTeamId = game.teams.away.team.id;
-
-        // Get probable pitchers
+        const homeName = game.teams.home.team.name;
+        const awayName = game.teams.away.team.name;
         const awayPitcher = game.teams.away.probablePitcher;
         const homePitcher = game.teams.home.probablePitcher;
 
-        // Show loading state
         container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:1rem;">Loading players...</p>';
 
-        // Fetch real hitters from MLB Stats API
         const [homePlayers, awayPlayers] = await Promise.all([
             mlbApi.getRealTeamHitters(homeTeamId, homeTeam, awayPitcher),
             mlbApi.getRealTeamHitters(awayTeamId, awayTeam, homePitcher)
         ]);
 
-        // Combine and sort by recommendation
-        const allPlayers = [
-            ...homePlayers.map(p => ({ ...p, team: homeTeam, teamName: game.teams.home.team.name })),
-            ...awayPlayers.map(p => ({ ...p, team: awayTeam, teamName: game.teams.away.team.name }))
-        ];
-
-        // Fetch weather impact for this park (cached)
         const weatherData = this.weatherCache[homeTeam] || null;
         const weatherScore = weatherData?.impact?.score ?? 0;
 
-        // Calculate recommendations with pitcher matchup and sort
-        const playersWithRecs = allPlayers.map(player => {
-            const rec = calculateRecommendationWithWeather(
-                parkFactor,
-                player.seasonHRs,
-                player.last7HRs,
-                player.pitcher,
-                weatherScore,
-                player.gamesPlayed || 0
-            );
-            return { ...player, recommendation: rec, parkFactor };
-        }).filter(p => p.recommendation) // Only show players with recommendations
-          .sort((a, b) => {
-              // Sort by score (highest first)
-              return b.recommendation.score - a.recommendation.score;
-          });
+        const processPlayers = (players, team, teamName) =>
+            players.map(p => ({ ...p, team, teamName }))
+                .map(player => {
+                    const rec = calculateRecommendationWithWeather(
+                        parkFactor, player.seasonHRs, player.last7HRs,
+                        player.pitcher, weatherScore, player.gamesPlayed || 0
+                    );
+                    return { ...player, recommendation: rec, parkFactor };
+                })
+                .filter(p => p.recommendation)
+                .sort((a, b) => b.recommendation.score - a.recommendation.score);
 
-        if (playersWithRecs.length === 0) {
-            container.innerHTML = '<p style="text-align: center; color: var(--text-muted);">No strong picks for this game</p>';
+        const homeWithRecs = processPlayers(homePlayers, homeTeam, homeName);
+        const awayWithRecs = processPlayers(awayPlayers, awayTeam, awayName);
+
+        if (homeWithRecs.length === 0 && awayWithRecs.length === 0) {
+            container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:1rem;">No picks available</p>';
             return;
         }
 
-        container.innerHTML = '';
-        playersWithRecs.forEach(player => {
-            this.renderPlayer(player, container, game);
-        });
+        const gpk = game.gamePk;
+
+        // Build team tab UI
+        container.innerHTML = `
+            <div class="team-tabs-nav">
+                <button class="team-tab-btn active" onclick="app.switchTeamTab(event, ${gpk}, 'away')">${awayTeam} Batters</button>
+                <button class="team-tab-btn" onclick="app.switchTeamTab(event, ${gpk}, 'home')">${homeTeam} Batters</button>
+            </div>
+            <div class="team-players-pane active" id="team-pane-${gpk}-away"></div>
+            <div class="team-players-pane" id="team-pane-${gpk}-home"></div>
+        `;
+
+        // Render away team
+        const awayPane = document.getElementById(`team-pane-${gpk}-away`);
+        const awayWrap = document.createElement('div');
+        awayWrap.className = 'players-list';
+        awayWithRecs.forEach(p => this.renderPlayer(p, awayWrap, game));
+        awayPane.appendChild(awayWrap);
+
+        // Render home team
+        const homePane = document.getElementById(`team-pane-${gpk}-home`);
+        const homeWrap = document.createElement('div');
+        homeWrap.className = 'players-list';
+        homeWithRecs.forEach(p => this.renderPlayer(p, homeWrap, game));
+        homePane.appendChild(homeWrap);
+    }
+
+    switchTeamTab(event, gamePk, team) {
+        event.stopPropagation();
+        const nav = event.target.closest('.team-tabs-nav');
+        nav.querySelectorAll('.team-tab-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById(`team-pane-${gamePk}-away`).classList.toggle('active', team === 'away');
+        document.getElementById(`team-pane-${gamePk}-home`).classList.toggle('active', team === 'home');
     }
 
     renderPlayer(player, container, game) {
