@@ -456,56 +456,75 @@ class HRParlayApp {
         const awayTeam = game.teams.away.team.abbreviation;
         const homeTeamId = game.teams.home.team.id;
         const awayTeamId = game.teams.away.team.id;
-
-        // Get probable pitchers
+        const homeName = game.teams.home.team.name;
+        const awayName = game.teams.away.team.name;
         const awayPitcher = game.teams.away.probablePitcher;
         const homePitcher = game.teams.home.probablePitcher;
 
-        // Show loading state
         container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:1rem;">Loading players...</p>';
 
-        // Fetch real hitters from MLB Stats API
         const [homePlayers, awayPlayers] = await Promise.all([
             mlbApi.getRealTeamHitters(homeTeamId, homeTeam, awayPitcher),
             mlbApi.getRealTeamHitters(awayTeamId, awayTeam, homePitcher)
         ]);
 
-        // Combine and sort by recommendation
-        const allPlayers = [
-            ...homePlayers.map(p => ({ ...p, team: homeTeam, teamName: game.teams.home.team.name })),
-            ...awayPlayers.map(p => ({ ...p, team: awayTeam, teamName: game.teams.away.team.name }))
-        ];
-
-        // Fetch weather impact for this park (cached)
         const weatherData = this.weatherCache[homeTeam] || null;
         const weatherScore = weatherData?.impact?.score ?? 0;
 
-        // Calculate recommendations with pitcher matchup and sort
-        const playersWithRecs = allPlayers.map(player => {
-            const rec = calculateRecommendationWithWeather(
-                parkFactor,
-                player.seasonHRs,
-                player.last7HRs,
-                player.pitcher,
-                weatherScore,
-                player.gamesPlayed || 0
-            );
-            return { ...player, recommendation: rec, parkFactor };
-        }).filter(p => p.recommendation) // Only show players with recommendations
-          .sort((a, b) => {
-              // Sort by score (highest first)
-              return b.recommendation.score - a.recommendation.score;
-          });
+        const processPlayers = (players, team, teamName) =>
+            players.map(p => ({ ...p, team, teamName }))
+                .map(player => {
+                    const rec = calculateRecommendationWithWeather(
+                        parkFactor, player.seasonHRs, player.last7HRs,
+                        player.pitcher, weatherScore, player.gamesPlayed || 0
+                    );
+                    return { ...player, recommendation: rec, parkFactor };
+                })
+                .filter(p => p.recommendation)
+                .sort((a, b) => b.recommendation.score - a.recommendation.score);
 
-        if (playersWithRecs.length === 0) {
-            container.innerHTML = '<p style="text-align: center; color: var(--text-muted);">No strong picks for this game</p>';
+        const homeWithRecs = processPlayers(homePlayers, homeTeam, homeName);
+        const awayWithRecs = processPlayers(awayPlayers, awayTeam, awayName);
+
+        if (homeWithRecs.length === 0 && awayWithRecs.length === 0) {
+            container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:1rem;">No picks available</p>';
             return;
         }
 
-        container.innerHTML = '';
-        playersWithRecs.forEach(player => {
-            this.renderPlayer(player, container, game);
-        });
+        const gpk = game.gamePk;
+
+        // Build team tab UI
+        container.innerHTML = `
+            <div class="team-tabs-nav">
+                <button class="team-tab-btn active" onclick="app.switchTeamTab(event, ${gpk}, 'away')">${awayTeam} Batters</button>
+                <button class="team-tab-btn" onclick="app.switchTeamTab(event, ${gpk}, 'home')">${homeTeam} Batters</button>
+            </div>
+            <div class="team-players-pane active" id="team-pane-${gpk}-away"></div>
+            <div class="team-players-pane" id="team-pane-${gpk}-home"></div>
+        `;
+
+        // Render away team
+        const awayPane = document.getElementById(`team-pane-${gpk}-away`);
+        const awayWrap = document.createElement('div');
+        awayWrap.className = 'players-list';
+        awayWithRecs.forEach(p => this.renderPlayer(p, awayWrap, game));
+        awayPane.appendChild(awayWrap);
+
+        // Render home team
+        const homePane = document.getElementById(`team-pane-${gpk}-home`);
+        const homeWrap = document.createElement('div');
+        homeWrap.className = 'players-list';
+        homeWithRecs.forEach(p => this.renderPlayer(p, homeWrap, game));
+        homePane.appendChild(homeWrap);
+    }
+
+    switchTeamTab(event, gamePk, team) {
+        event.stopPropagation();
+        const nav = event.target.closest('.team-tabs-nav');
+        nav.querySelectorAll('.team-tab-btn').forEach(b => b.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById(`team-pane-${gamePk}-away`).classList.toggle('active', team === 'away');
+        document.getElementById(`team-pane-${gamePk}-home`).classList.toggle('active', team === 'home');
     }
 
     renderPlayer(player, container, game) {
@@ -958,7 +977,6 @@ class HRParlayApp {
 
         const allPicks = [];
 
-        // Process games sequentially to avoid hammering the API
         for (const game of this.games) {
             try {
                 const homeAbbr = game.teams.home.team.abbreviation;
@@ -983,40 +1001,76 @@ class HRParlayApp {
 
                 players.forEach(player => {
                     const rec = calculateRecommendationWithWeather(
-                        parkInfo.factor, player.seasonHRs, player.last7HRs, player.pitcher, weatherScore
+                        parkInfo.factor, player.seasonHRs, player.last7HRs,
+                        player.pitcher, weatherScore, player.gamesPlayed || 0
                     );
                     if (rec) {
+                        // Data quality: how confident are we in this player's stats?
+                        const dataQuality = player.atBats >= 80 ? 'high'
+                            : player.atBats >= 30 ? 'medium' : 'low';
+
                         allPicks.push({
                             ...player,
                             recommendation: rec,
                             parkFactor: parkInfo.factor,
                             parkName: parkInfo.name,
                             weatherImpact: weatherData?.impact || null,
-                            gameLabel: `${awayAbbr} @ ${homeAbbr}`
+                            gameLabel: `${awayAbbr} @ ${homeAbbr}`,
+                            dataQuality
                         });
                     }
                 });
-            } catch (e) {
-                continue;
-            }
+            } catch (e) { continue; }
         }
 
-        // Sort by score, take top 20
         allPicks.sort((a, b) => b.recommendation.score - a.recommendation.score);
-        const topPicks = allPicks.slice(0, 20);
 
-        if (topPicks.length === 0) {
-            container.innerHTML = `<div class="empty-state"><p>⭐ No picks found today</p><p class="hint">Try checking back once lineups are announced</p></div>`;
+        if (allPicks.length === 0) {
+            container.innerHTML = `<div class="empty-state"><p>⭐ No picks found today</p></div>`;
             return;
         }
 
+        // Store for filtering
+        this._allBestPicks = allPicks;
+        this._bestPicksTeamFilter = 'all';
+        this.renderBestPicksList(container, allPicks);
+    }
+
+    renderBestPicksList(container, allPicks) {
+        // Get unique teams for filter
+        const teams = [...new Set(allPicks.map(p => p.team))].sort();
+        const filter = this._bestPicksTeamFilter || 'all';
+        const filtered = filter === 'all' ? allPicks : allPicks.filter(p => p.team === filter);
+        const shown = filtered.slice(0, 25);
+
         container.innerHTML = `
-            <div class="best-picks-header">
-                <span class="best-picks-title">⭐ Top ${topPicks.length} Picks Today</span>
-                <span class="best-picks-sub">Sorted by confidence score</span>
+            <div class="best-picks-controls">
+                <div class="best-picks-header">
+                    <span class="best-picks-title">⭐ Top Picks Today</span>
+                    <span class="best-picks-sub">${shown.length} shown · sorted by confidence</span>
+                </div>
+                <div class="best-picks-filters">
+                    <select class="team-filter-select" onchange="app.filterBestPicks(this.value)">
+                        <option value="all">All Teams</option>
+                        ${teams.map(t => `<option value="${t}" ${t === filter ? 'selected' : ''}>${t}</option>`).join('')}
+                    </select>
+                </div>
             </div>
-            ${topPicks.map((player, idx) => this.renderBestPickRow(player, idx)).join('')}
+            <div class="data-quality-note">
+                <span class="dq-dot dq-high"></span> Strong data
+                <span class="dq-dot dq-medium" style="margin-left:0.6rem;"></span> Limited ABs
+                <span class="dq-dot dq-low" style="margin-left:0.6rem;"></span> Early season estimate
+            </div>
+            ${shown.map((player, idx) => this.renderBestPickRow(player, idx)).join('')}
         `;
+    }
+
+    filterBestPicks(team) {
+        this._bestPicksTeamFilter = team;
+        const container = document.getElementById('bestPicksContainer');
+        if (container && this._allBestPicks) {
+            this.renderBestPicksList(container, this._allBestPicks);
+        }
     }
 
     renderBestPickRow(player, idx) {
@@ -1034,7 +1088,10 @@ class HRParlayApp {
                      onclick="app.quickAddFromBest(${JSON.stringify(player.id)}, '${player.gameLabel}')">
             <div class="best-rank">${idx + 1}</div>
             <div class="best-info">
-                <div class="best-name">${player.name}</div>
+                <div class="best-name">
+                    ${player.name}
+                    <span class="dq-dot dq-${player.dataQuality || 'low'}" title="${player.dataQuality === 'high' ? 'Strong data (80+ ABs)' : player.dataQuality === 'medium' ? 'Limited sample (30-79 ABs)' : 'Early season estimate (<30 ABs)'}"></span>
+                </div>
                 <div class="best-meta">
                     <span class="best-team">${player.teamName}</span>
                     <span class="best-game">${player.gameLabel}</span>

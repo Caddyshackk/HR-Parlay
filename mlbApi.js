@@ -224,7 +224,8 @@ class MLBApi {
     // For players still early in the season with 0 HRs,
     // use prior year HR total as the power baseline
     async enrichWithPriorYear(hitters, priorSeason) {
-        const needsBaseline = hitters.filter(h => h.seasonHRs <= 15 && h.atBats < 80);
+        // Run for all players with less than 80 ABs — gives established players proper power baseline
+        const needsBaseline = hitters.filter(h => h.atBats < 80);
         if (needsBaseline.length === 0) return;
 
         await Promise.allSettled(needsBaseline.map(async hitter => {
@@ -246,9 +247,12 @@ class MLBApi {
 
                 this._cache[cacheKey] = { data: priorHRs, time: Date.now() };
 
-                // Use prior year as baseline if it's higher than current projection
-                if (priorHRs > hitter.seasonHRs) {
-                    hitter.seasonHRs = priorHRs;
+                // Blend prior year (60%) with current projection (40%) for early season stability
+                // This prevents small sample flukes from dominating while still showing current trends
+                const blended = Math.round(priorHRs * 0.6 + hitter.seasonHRs * 0.4);
+                if (blended > hitter.seasonHRs || hitter.atBats < 30) {
+                    hitter.seasonHRs = blended;
+                    hitter.priorYearHRs = priorHRs;
                     hitter.earlySeasonProjected = true;
                 }
             } catch (e) { /* leave as is */ }
