@@ -1588,31 +1588,18 @@ function calculateRecommendationWithWeather(parkFactor, seasonHRs, last7HRs, pit
     // ── Power: keep full weight (0-4) ────────────────────────────────────────
     const powerAdj = breakdown.power || 0;
 
-    // ── Form: relative pace comparison ────────────────────────────────────────
+    // ── Form: season HR pace vs league average ────────────────────────────────
+    // League average is ~0.14 HR/game (≈23 HRs over 162 games)
+    // This is always available and meaningful regardless of API lag
     let formAdj = 0;
-    const gp = gamesPlayed || Math.max(1, seasonHRs > 0 ? Math.round(seasonHRs / 0.18) : 20);
-    const seasonRate = seasonHRs / Math.max(gp, 1);
-    const recentRate = last7HRs / 6;
+    const gp = Math.max(gamesPlayed || 1, 1);
+    const hrPace = seasonHRs / gp; // HRs per game this season
 
-    if (last7HRs > 0 && seasonRate > 0) {
-        // We have real recent data — use pace comparison
-        const hotFactor = recentRate / seasonRate;
-        if      (hotFactor >= 2.5) formAdj = 4;   // scorching
-        else if (hotFactor >= 1.5) formAdj = 3;   // hot
-        else if (hotFactor >= 1.0) formAdj = 2;   // on pace
-        else if (hotFactor >= 0.5) formAdj = 1;   // slightly cold
-        else                       formAdj = 0;   // cold
-    } else if (last7HRs === 0 && seasonRate > 0) {
-        // No recent HRs recorded — could be API lag or genuinely cold
-        // Give established power hitters (high season rate) a baseline form score
-        // so they aren't unfairly penalized by missing data
-        if      (seasonRate >= 0.25) formAdj = 2;  // elite pace (40+ HR pace), at least "on pace"
-        else if (seasonRate >= 0.18) formAdj = 1;  // solid pace (29+ HR pace)
-        else                         formAdj = 0;  // average or below
-    } else {
-        // No season data — use raw last7 as fallback
-        formAdj = last7HRs >= 3 ? 4 : last7HRs >= 2 ? 3 : last7HRs >= 1 ? 2 : 0;
-    }
+    if      (hrPace >= 0.30) formAdj = 4;  // Elite: 49+ HR pace
+    else if (hrPace >= 0.22) formAdj = 3;  // Great: 36+ HR pace
+    else if (hrPace >= 0.15) formAdj = 2;  // Good:  24+ HR pace
+    else if (hrPace >= 0.09) formAdj = 1;  // Average: 15+ HR pace
+    else                     formAdj = 0;  // Below average
 
     // ── Matchup: keep original score (0-5), no artificial boost or cap ───────
     // The original already differentiates weak/average/tough pitchers well
@@ -1626,16 +1613,19 @@ function calculateRecommendationWithWeather(parkFactor, seasonHRs, last7HRs, pit
         parkAdj + powerAdj + formAdj + matchupAdj + weatherAdj
     ));
 
-    const formLabel = formAdj >= 4 ? '🔥 Scorching' : formAdj >= 3 ? '📈 Hot streak'
-                    : formAdj >= 2 ? 'On pace' : formAdj >= 1 ? 'Slightly cold' : '🥶 Cold';
+    const formLabel = formAdj >= 4 ? '🔥 Elite HR pace'
+                    : formAdj >= 3 ? '📈 Great HR pace'
+                    : formAdj >= 2 ? '✅ Good HR pace'
+                    : formAdj >= 1 ? 'Average pace'
+                    : '📉 Below average pace';
 
     const weatherBonus = weatherAdj >= 1 ? [{ icon: '⚡', text: 'Favorable weather', type: 'good' }]
                        : weatherAdj <= -1 ? [{ icon: '⚠️', text: 'Weather hurts power', type: 'bad' }]
                        : [];
     const formBonus = formAdj >= 3
         ? [{ icon: formAdj >= 4 ? '🔥' : '📈', text: formLabel, type: 'good' }]
-        : formAdj === 0 && last7HRs === 0
-        ? [{ icon: '🥶', text: 'Cold streak', type: 'bad' }]
+        : formAdj === 0
+        ? [{ icon: '📉', text: 'Below average pace', type: 'bad' }]
         : [];
 
     return {
