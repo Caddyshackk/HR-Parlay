@@ -1878,3 +1878,112 @@ body {
 .dq-high   { background: var(--accent-green); }
 .dq-medium { background: var(--accent-amber); }
 .dq-low    { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); }
+
+/* ── Best Picks Filter Bar ──────────────────────────────────────── */
+
+.bp-header-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 0.25rem 0 0.6rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0.5rem;
+}
+
+.bp-filters-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0.4rem;
+}
+
+.bp-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.bp-filter-label {
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+}
+
+.bp-chip-group {
+    display: flex;
+    gap: 0.2rem;
+}
+
+.bp-chip {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--text-muted);
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    cursor: pointer;
+    font-family: var(--font);
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.bp-chip:hover {
+    border-color: var(--border-hover);
+    color: var(--text);
+}
+
+.bp-chip.active {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.bp-toggle {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--text-muted);
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.2rem 0.6rem;
+    cursor: pointer;
+    font-family: var(--font);
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.bp-toggle:hover {
+    border-color: var(--border-hover);
+    color: var(--text);
+}
+
+.bp-toggle.active {
+    background: rgba(34, 197, 94, 0.12);
+    border-color: var(--accent-green);
+    color: var(--accent-green);
+}
+
+.bp-clear-btn {
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 20px;
+    color: var(--accent-red);
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    cursor: pointer;
+    font-family: var(--font);
+    transition: all 0.15s;
+    margin-left: auto;
+}
+
+.bp-clear-btn:hover {
+    background: rgba(239, 68, 68, 0.15);
+}

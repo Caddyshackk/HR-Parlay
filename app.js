@@ -1030,47 +1030,105 @@ class HRParlayApp {
             return;
         }
 
-        // Store for filtering
+        // Store for filtering — reset filters on fresh load
         this._allBestPicks = allPicks;
-        this._bestPicksTeamFilter = 'all';
+        this._bpFilters = { minScore: 0, parkOnly: false, qualityOnly: false, team: 'all' };
         this.renderBestPicksList(container, allPicks);
     }
 
     renderBestPicksList(container, allPicks) {
-        // Get unique teams for filter
+        const f = this._bpFilters || { minScore: 0, parkOnly: false, qualityOnly: false, team: 'all' };
         const teams = [...new Set(allPicks.map(p => p.team))].sort();
-        const filter = this._bestPicksTeamFilter || 'all';
-        const filtered = filter === 'all' ? allPicks : allPicks.filter(p => p.team === filter);
-        const shown = filtered.slice(0, 25);
+
+        // Apply all filters
+        let filtered = allPicks.filter(p => {
+            if (f.team !== 'all' && p.team !== f.team) return false;
+            if (f.minScore > 0 && (p.recommendation?.score || 0) < f.minScore) return false;
+            if (f.parkOnly && p.parkFactor <= 100) return false;
+            if (f.qualityOnly && p.dataQuality !== 'high') return false;
+            return true;
+        });
+
+        const shown = filtered.slice(0, 30);
+        const activeFilters = [f.parkOnly, f.qualityOnly, f.minScore > 0, f.team !== 'all'].filter(Boolean).length;
 
         container.innerHTML = `
-            <div class="best-picks-controls">
-                <div class="best-picks-header">
-                    <span class="best-picks-title">⭐ Top Picks Today</span>
-                    <span class="best-picks-sub">${shown.length} shown · sorted by confidence</span>
+            <div class="bp-header-row">
+                <span class="best-picks-title">⭐ Top Picks Today</span>
+                <span class="best-picks-sub">${shown.length} of ${allPicks.length} players</span>
+            </div>
+
+            <div class="bp-filters-bar">
+                <!-- Confidence threshold -->
+                <div class="bp-filter-group">
+                    <span class="bp-filter-label">Min Score</span>
+                    <div class="bp-chip-group">
+                        ${[0, 10, 12, 14].map(v => `
+                            <button class="bp-chip ${f.minScore === v ? 'active' : ''}"
+                                onclick="app.setBpFilter('minScore', ${v})">
+                                ${v === 0 ? 'Any' : `${v}+`}
+                            </button>`).join('')}
+                    </div>
                 </div>
-                <div class="best-picks-filters">
-                    <select class="team-filter-select" onchange="app.filterBestPicks(this.value)">
+
+                <!-- Park factor -->
+                <div class="bp-filter-group">
+                    <button class="bp-toggle ${f.parkOnly ? 'active' : ''}"
+                        onclick="app.setBpFilter('parkOnly', ${!f.parkOnly})">
+                        🏟 Hitter Parks Only
+                    </button>
+                </div>
+
+                <!-- Data quality -->
+                <div class="bp-filter-group">
+                    <button class="bp-toggle ${f.qualityOnly ? 'active' : ''}"
+                        onclick="app.setBpFilter('qualityOnly', ${!f.qualityOnly})">
+                        ✅ High Confidence Only
+                    </button>
+                </div>
+
+                <!-- Team filter -->
+                <div class="bp-filter-group">
+                    <select class="team-filter-select" onchange="app.setBpFilter('team', this.value)">
                         <option value="all">All Teams</option>
-                        ${teams.map(t => `<option value="${t}" ${t === filter ? 'selected' : ''}>${t}</option>`).join('')}
+                        ${teams.map(t => `<option value="${t}" ${t === f.team ? 'selected' : ''}>${t}</option>`).join('')}
                     </select>
                 </div>
+
+                ${activeFilters > 0 ? `
+                    <button class="bp-clear-btn" onclick="app.clearBpFilters()">
+                        ✕ Clear (${activeFilters})
+                    </button>` : ''}
             </div>
+
             <div class="data-quality-note">
-                <span class="dq-dot dq-high"></span> Strong data
-                <span class="dq-dot dq-medium" style="margin-left:0.6rem;"></span> Limited ABs
-                <span class="dq-dot dq-low" style="margin-left:0.6rem;"></span> Early season estimate
+                <span class="dq-dot dq-high"></span> 80+ ABs
+                <span class="dq-dot dq-medium" style="margin-left:0.5rem;"></span> 30–79 ABs
+                <span class="dq-dot dq-low" style="margin-left:0.5rem;"></span> &lt;30 ABs (estimated)
             </div>
-            ${shown.map((player, idx) => this.renderBestPickRow(player, idx)).join('')}
+
+            ${shown.length === 0
+                ? `<div class="empty-state" style="padding:1.5rem;"><p>No picks match these filters</p><p class="hint">Try loosening the criteria above</p></div>`
+                : shown.map((player, idx) => this.renderBestPickRow(player, idx)).join('')
+            }
         `;
     }
 
-    filterBestPicks(team) {
-        this._bestPicksTeamFilter = team;
+    setBpFilter(key, value) {
+        if (!this._bpFilters) this._bpFilters = { minScore: 0, parkOnly: false, qualityOnly: false, team: 'all' };
+        this._bpFilters[key] = value;
         const container = document.getElementById('bestPicksContainer');
-        if (container && this._allBestPicks) {
-            this.renderBestPicksList(container, this._allBestPicks);
-        }
+        if (container && this._allBestPicks) this.renderBestPicksList(container, this._allBestPicks);
+    }
+
+    clearBpFilters() {
+        this._bpFilters = { minScore: 0, parkOnly: false, qualityOnly: false, team: 'all' };
+        const container = document.getElementById('bestPicksContainer');
+        if (container && this._allBestPicks) this.renderBestPicksList(container, this._allBestPicks);
+    }
+
+    filterBestPicks(team) {
+        this.setBpFilter('team', team);
     }
 
     renderBestPickRow(player, idx) {

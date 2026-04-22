@@ -14,12 +14,22 @@ class MLBApi {
             const url = `${this.scheduleUrl}?sportId=1&date=${dateStr}&hydrate=team,linescore,probablePitcher(stats(type=season))`;
             const response = await fetch(url);
             const data = await response.json();
-            
-            if (data.dates && data.dates.length > 0 && data.dates[0].games.length > 0) {
-                console.log(`Found ${data.dates[0].games.length} games on ${dateStr}`);
-                return data.dates[0].games;
+
+            // Flatten ALL dates returned (handles doubleheaders / rescheduled games
+            // that the API sometimes returns across multiple date buckets)
+            if (data.dates && data.dates.length > 0) {
+                const allGames = data.dates.flatMap(d => d.games || []);
+                // Deduplicate by gamePk
+                const seen = new Set();
+                const unique = allGames.filter(g => {
+                    if (seen.has(g.gamePk)) return false;
+                    seen.add(g.gamePk);
+                    return true;
+                });
+                console.log(`Found ${unique.length} games on ${dateStr}`);
+                return unique;
             }
-            
+
             console.log(`No games found on ${dateStr}`);
             return [];
         } catch (error) {
