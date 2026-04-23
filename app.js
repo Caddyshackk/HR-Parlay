@@ -471,8 +471,8 @@ class HRParlayApp {
         const weatherData = this.weatherCache[homeTeam] || null;
         const weatherScore = weatherData?.impact?.score ?? 0;
 
-        const processPlayers = (players, team, teamName) =>
-            players.map(p => ({ ...p, team, teamName }))
+        const processPlayers = (players, team, teamName) => {
+            const result = players.map(p => ({ ...p, team, teamName }))
                 .map(player => {
                     const rec = calculateRecommendationWithWeather(
                         parkFactor, player.seasonHRs, player.last7HRs,
@@ -483,13 +483,12 @@ class HRParlayApp {
                 .filter(p => p.recommendation)
                 .sort((a, b) => b.recommendation.score - a.recommendation.score);
 
-        const homeWithRecs = processPlayers(homePlayers, homeTeam, homeName);
-        const awayWithRecs = processPlayers(awayPlayers, awayTeam, awayName);
+            // Store recommendations so addBet can find them
+            if (!this._recCache) this._recCache = {};
+            result.forEach(p => { this._recCache[p.id] = p.recommendation; });
 
-        if (homeWithRecs.length === 0 && awayWithRecs.length === 0) {
-            container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:1rem;">No picks available</p>';
-            return;
-        }
+            return result;
+        };
 
         const gpk = game.gamePk;
 
@@ -1195,19 +1194,24 @@ class HRParlayApp {
         }
     }
 
-    addBet(event, playerId, betType, gameLabel, gameDate) {
-        event.stopPropagation();
+        addBet(event, playerId, betType, gameLabel, gameDate) {
+            event.stopPropagation();
 
-        // Find player from cached data
-        let foundPlayer = null;
-        let foundGame = null;
-        for (const game of this.games || []) {
-            const homeCache = mlbApi._cache?.[`hitters_${game.teams.home.team.id}`]?.data || [];
-            const awayCache = mlbApi._cache?.[`hitters_${game.teams.away.team.id}`]?.data || [];
-            foundPlayer = [...homeCache, ...awayCache].find(p => p.id === playerId);
-            if (foundPlayer) { foundGame = game; break; }
-        }
-        if (!foundPlayer) return;
+            // Find player from cached data
+            let foundPlayer = null;
+            let foundGame = null;
+            for (const game of this.games || []) {
+                const homeCache = mlbApi._cache?.[`hitters_${game.teams.home.team.id}`]?.data || [];
+                const awayCache = mlbApi._cache?.[`hitters_${game.teams.away.team.id}`]?.data || [];
+                foundPlayer = [...homeCache, ...awayCache].find(p => p.id === playerId);
+                if (foundPlayer) { foundGame = game; break; }
+            }
+
+            if (foundPlayer) {
+                foundPlayer = { ...foundPlayer, recommendation: this._recCache?.[playerId] || null };
+            }
+
+            if (!foundPlayer) return;
 
         const existingIndex = this.currentParlay.findIndex(p => p.id === playerId && p.betType === betType);
         if (existingIndex > -1) {
