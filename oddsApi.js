@@ -7,7 +7,7 @@ class OddsAPI {
     constructor() {
         this.workerUrl = WORKER_URL;
         this.cache = {};
-        this.cacheTime = 5 * 60 * 1000; // 5-min cache
+        this.cacheTime = 30 * 60 * 1000; // 5-min cache
         this.remainingRequests = localStorage.getItem('oddsApiRemaining') || '?';
 
         this.bookNames = {
