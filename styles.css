@@ -1987,3 +1987,126 @@ body {
 .bp-clear-btn:hover {
     background: rgba(239, 68, 68, 0.15);
 }
+
+/* ── Parlay Item Expandable Stat Card ───────────────────────────── */
+
+.parlay-item {
+    background: var(--bg-elevated);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-bottom: 0.4rem;
+    transition: border-color 0.15s;
+}
+
+.parlay-item-expanded {
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.parlay-item-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.65rem 0.75rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.parlay-item-top:hover {
+    background: rgba(255,255,255,0.02);
+}
+
+.parlay-item-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.parlay-score {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--accent);
+    font-family: var(--font-mono);
+    line-height: 1;
+}
+
+.parlay-score-denom {
+    font-size: 0.62rem;
+    color: var(--text-dim);
+    font-weight: 400;
+    margin-left: 1px;
+}
+
+/* Expanded stat card */
+.parlay-stat-card {
+    border-top: 1px solid var(--border);
+    padding: 0.65rem 0.75rem;
+    background: rgba(255,255,255,0.01);
+}
+
+.parlay-rec-row {
+    margin-bottom: 0.5rem;
+}
+
+.parlay-breakdown {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.3rem;
+    margin-bottom: 0.5rem;
+}
+
+.parlay-bd-cell {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.3rem 0.25rem;
+    text-align: center;
+}
+
+.parlay-bd-label {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.1rem;
+}
+
+.parlay-bd-val {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text);
+    font-family: var(--font-mono);
+}
+
+.parlay-pitcher-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-bottom: 0.4rem;
+    padding: 0.35rem 0.5rem;
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+}
+
+.parlay-pitcher-label {
+    flex: 1;
+    color: var(--text);
+    font-weight: 600;
+}
+
+.parlay-pitcher-stat {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+}
+
+.parlay-bonuses {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-top: 0.1rem;
+}

@@ -671,7 +671,7 @@ class HRParlayApp {
                     ${bonusHTML}
                     <div class="score-breakdown">
                         <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text); display: flex; justify-content: space-between;">
-                            <span>Stats Breakdown</span>
+                            <span>Confidence Score</span>
                             <span style="color: var(--accent);">${rec.score}/17</span>
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; font-size: 0.75rem;">
@@ -1276,18 +1276,50 @@ class HRParlayApp {
             this.currentParlay.forEach(player => {
                 const item = document.createElement('div');
                 item.className = 'parlay-item';
+                const cardId = `parlay-card-${player.id}-${player.betType || 'HR'}`;
+                const rec = player.recommendation;
+
                 item.innerHTML = `
-                    <div class="parlay-item-info">
-                        <div class="parlay-player">
-                            ${player.name}
-                            <span class="bet-type-badge bet-type-${(player.betType || 'HR').toLowerCase()}">${player.betType || 'HR'}</span>
+                    <div class="parlay-item-top" onclick="app.toggleParlayCard('${cardId}')">
+                        <div class="parlay-item-info">
+                            <div class="parlay-player">
+                                ${player.name}
+                                <span class="bet-type-badge bet-type-${(player.betType || 'HR').toLowerCase()}">${player.betType || 'HR'}</span>
+                            </div>
+                            <div class="parlay-game">${player.game}</div>
+                            <div class="parlay-stats">
+                                ${player.displayHRs ?? player.seasonHRs} HRs · XBH: ${player.xbh || '—'} | Park: ${player.parkFactor}
+                            </div>
                         </div>
-                        <div class="parlay-game">${player.game}</div>
-                        <div style="margin-top: 0.25rem; font-size: 0.8rem; color: var(--text-muted);">
-                            ${player.displayHRs ?? player.seasonHRs} HRs · XBH: ${player.xbh || '—'} | Park: ${player.parkFactor}
+                        <div class="parlay-item-right">
+                            ${rec ? `<span class="parlay-score">${rec.score}<span class="parlay-score-denom">/17</span></span>` : ''}
+                            <button class="remove-btn" data-id="${player.id}-${player.betType || 'HR'}">✕</button>
                         </div>
                     </div>
-                    <button class="remove-btn" data-id="${player.id}-${player.betType || 'HR'}">Remove</button>
+                    <div class="parlay-stat-card" id="${cardId}" style="display:none;">
+                        ${rec ? `
+                        <div class="parlay-rec-row">
+                            <span class="recommendation ${rec.class}">${rec.label}</span>
+                        </div>
+                        <div class="parlay-breakdown">
+                            <div class="parlay-bd-cell"><div class="parlay-bd-label">Park</div><div class="parlay-bd-val">${rec.breakdown?.park ?? '—'}</div></div>
+                            <div class="parlay-bd-cell"><div class="parlay-bd-label">Power</div><div class="parlay-bd-val">${rec.breakdown?.power ?? '—'}</div></div>
+                            <div class="parlay-bd-cell"><div class="parlay-bd-label">Pace</div><div class="parlay-bd-val">${rec.breakdown?.form ?? '—'}</div></div>
+                            <div class="parlay-bd-cell"><div class="parlay-bd-label">Matchup</div><div class="parlay-bd-val">${rec.breakdown?.matchup ?? '—'}</div></div>
+                            <div class="parlay-bd-cell"><div class="parlay-bd-label">Weather</div><div class="parlay-bd-val">${rec.breakdown?.weather ?? 0}</div></div>
+                        </div>
+                        ${player.pitcher ? `
+                        <div class="parlay-pitcher-row">
+                            <span class="parlay-pitcher-label">vs ${player.pitcher.name}</span>
+                            <span class="parlay-pitcher-stat">ERA ${player.pitcher.era?.toFixed(2) ?? '—'}</span>
+                            <span class="parlay-pitcher-stat">HR/9 ${player.pitcher.hr9?.toFixed(2) ?? '—'}</span>
+                        </div>` : ''}
+                        ${rec.bonuses?.length ? `
+                        <div class="parlay-bonuses">
+                            ${rec.bonuses.map(b => `<span class="bonus-tag ${b.type || 'info'}">${b.icon} ${b.text}</span>`).join('')}
+                        </div>` : ''}
+                        ` : '<div style="color:var(--text-muted);font-size:0.75rem;padding:0.25rem;">No stat data available</div>'}
+                    </div>
                 `;
 
                 item.querySelector('.remove-btn').addEventListener('click', (e) => {
@@ -1305,6 +1337,16 @@ class HRParlayApp {
                 parlayList.appendChild(item);
             });
         }
+    }
+
+    toggleParlayCard(cardId) {
+        const card = document.getElementById(cardId);
+        if (!card) return;
+        const isOpen = card.style.display !== 'none';
+        card.style.display = isOpen ? 'none' : 'block';
+        // Update chevron on the parent item
+        const item = card.closest('.parlay-item');
+        if (item) item.classList.toggle('parlay-item-expanded', !isOpen);
     }
 
     saveParlay() {
@@ -1601,14 +1643,43 @@ function calculateRecommendationWithWeather(parkFactor, seasonHRs, last7HRs, pit
     else if (hrPace >= 0.09) formAdj = 1;  // Average: 15+ HR pace
     else                     formAdj = 0;  // Below average
 
-    // ── Matchup: keep original score (0-5), no artificial boost or cap ───────
-    // The original already differentiates weak/average/tough pitchers well
-    const matchupAdj = breakdown.matchup || 0;
+    // ── Matchup: direct pitcher scoring for full spread (0-9) ────────────────
+    // ERA + HR/9 scored separately then combined — gives real separation between
+    // a homer-prone pitcher and an ace
+    let matchupAdj = 0;
+    if (pitcher && typeof pitcher === 'object') {
+        const era = typeof pitcher.era === 'number' ? pitcher.era : 4.50;
+        const hr9 = typeof pitcher.hr9 === 'number' ? pitcher.hr9 : 1.20;
+
+        // ERA score 0-4: higher ERA = easier matchup = higher score
+        let eraScore = 0;
+        if      (era >= 5.50) eraScore = 4;
+        else if (era >= 4.75) eraScore = 3;
+        else if (era >= 4.00) eraScore = 2;
+        else if (era >= 3.25) eraScore = 1;
+        else                  eraScore = 0;
+
+        // HR/9 score 0-4: higher HR/9 = more homers allowed = better matchup
+        let hr9Score = 0;
+        if      (hr9 >= 2.00) hr9Score = 4;
+        else if (hr9 >= 1.50) hr9Score = 3;
+        else if (hr9 >= 1.10) hr9Score = 2;
+        else if (hr9 >= 0.75) hr9Score = 1;
+        else                  hr9Score = 0;
+
+        // Platoon bonus: +1 if batter has handedness advantage
+        const platoonBonus = pitcher.vsHandAdvantage ? 1 : 0;
+
+        // Score: ERA and HR9 weighted equally, max 9
+        matchupAdj = Math.min(9, eraScore + hr9Score + platoonBonus);
+    } else {
+        matchupAdj = breakdown.matchup || 0;
+    }
 
     // ── Weather: minor nudge only (-1 / 0 / +1) ──────────────────────────────
     const weatherAdj = weatherScore >= 2 ? 1 : weatherScore <= -2 ? -1 : 0;
 
-    // Total: park(0-4) + power(0-4) + form(0-4) + matchup(0-5) + weather(-1/0/+1) = 0-18, clamp 17
+    // Total: park(0-4) + power(0-4) + pace(0-4) + matchup(0-9) + weather(-1/0/+1) = max 22, clamp 17
     const newScore = Math.min(17, Math.max(0,
         parkAdj + powerAdj + formAdj + matchupAdj + weatherAdj
     ));
