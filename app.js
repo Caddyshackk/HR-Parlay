@@ -671,7 +671,7 @@ class HRParlayApp {
                     ${bonusHTML}
                     <div class="score-breakdown">
                         <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text); display: flex; justify-content: space-between;">
-                            <span>Confidence Score</span>
+                            <span>Stats Breakdown</span>
                             <span style="color: var(--accent);">${rec.score}/17</span>
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; font-size: 0.75rem;">
