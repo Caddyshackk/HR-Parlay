@@ -180,16 +180,12 @@ class MLBApi {
                         // If player has 0 HRs but has ABs: use AB-based projection
                         // Minimum floor based on position in lineup (power hitters get at least 15 projected)
                         let projectedHRs;
-                        if (atBats >= 80) {
-                            // Enough sample — use actual count
-                            projectedHRs = seasonHRs;
-                        } else if (seasonHRs > 0) {
-                            // Small sample with HRs — project the rate
+                        if (seasonHRs > 0 && atBats > 0) {
+                            // Project current HR rate over 550 ABs for full season estimate
                             projectedHRs = Math.round((seasonHRs / Math.max(atBats, 1)) * 550);
                         } else {
-                            // 0 HRs so far — project from games played (avg ~0.18 HR/game for power hitters)
-                            // Use a conservative 10 projected HRs as floor so power isn't zeroed out
-                            projectedHRs = gp >= 5 ? 10 : 15;
+                            // No HRs yet — use conservative floor, prior year will boost it
+                            projectedHRs = gp >= 5 ? 8 : 12;
                         }
 
                         return {
@@ -234,8 +230,9 @@ class MLBApi {
     // For players still early in the season with 0 HRs,
     // use prior year HR total as the power baseline
     async enrichWithPriorYear(hitters, priorSeason) {
-        // Run for all players with less than 80 ABs — gives established players proper power baseline
-        const needsBaseline = hitters.filter(h => h.atBats < 80);
+        // Blend prior year for ALL players — acts as regression to the mean
+        // prevents small sample projections from going wildly high or low
+        const needsBaseline = hitters;
         if (needsBaseline.length === 0) return;
 
         await Promise.allSettled(needsBaseline.map(async hitter => {
@@ -257,14 +254,18 @@ class MLBApi {
 
                 this._cache[cacheKey] = { data: priorHRs, time: Date.now() };
 
-                // Blend prior year (60%) with current projection (40%) for early season stability
-                // This prevents small sample flukes from dominating while still showing current trends
-                const blended = Math.round(priorHRs * 0.6 + hitter.seasonHRs * 0.4);
-                if (blended > hitter.seasonHRs || hitter.atBats < 30) {
-                    hitter.seasonHRs = blended;
-                    hitter.priorYearHRs = priorHRs;
-                    hitter.earlySeasonProjected = true;
-                }
+                // Blend: as the season progresses, trust current projection more
+                // < 50 ABs: 80% prior year, 20% current projection
+                // 50-150 ABs: 50/50
+                // 150+ ABs: 20% prior year, 80% current projection
+                const ab = hitter.atBats || 0;
+                const priorWeight = ab < 50 ? 0.80 : ab < 150 ? 0.50 : 0.20;
+                const currWeight  = 1 - priorWeight;
+                const blended = Math.round(priorHRs * priorWeight + hitter.seasonHRs * currWeight);
+                // Always update — prior year anchors the score throughout the season
+                hitter.seasonHRs = blended;
+                hitter.priorYearHRs = priorHRs;
+                hitter.earlySeasonProjected = ab < 150;
             } catch (e) { /* leave as is */ }
         }));
     }
