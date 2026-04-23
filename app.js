@@ -672,7 +672,7 @@ class HRParlayApp {
                     <div class="score-breakdown">
                         <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text); display: flex; justify-content: space-between;">
                             <span>Confidence Score</span>
-                            <span style="color: var(--accent);">${rec.score}/17</span>
+                            <span style="color: var(--accent);">${rec.score}/19</span>
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; font-size: 0.75rem;">
                             <div>
@@ -1165,7 +1165,7 @@ class HRParlayApp {
             </div>
             <div class="best-score-col">
                 <div class="best-score">${rec.score}</div>
-                <div class="best-score-lbl">/ 17</div>
+                <div class="best-score-lbl">/ 19</div>
                 <div class="best-rec-badge ${rec.class}">${isSelected ? '✓ Added' : rec.label}</div>
             </div>
         </div>`;
@@ -1308,7 +1308,7 @@ class HRParlayApp {
                             </div>
                         </div>
                         <div class="parlay-item-right">
-                            ${rec ? `<span class="parlay-score">${rec.score}<span class="parlay-score-denom">/17</span></span>` : ''}
+                            ${rec ? `<span class="parlay-score">${rec.score}<span class="parlay-score-denom">/19</span></span>` : ''}
                             <button class="remove-btn" data-id="${player.id}-${player.betType || 'HR'}">✕</button>
                         </div>
                     </div>
@@ -1628,7 +1628,7 @@ class HRParlayApp {
 
 // Weather-aware wrapper for calculateRecommendation
 // Recommendation wrapper — preserves original scoring range, adds weather + relative form
-// Original parkFactors.js: park(0-4) + power(0-4) + form(0-4) + matchup(0-5) = 0-17
+// Original parkFactors.js: park(0-4) + power(0-4) + form(0-4) + matchup(0-5) = 0-19
 // Our additions: replace form with relative pace, add weather nudge
 const _originalCalcRec = typeof calculateRecommendation === 'function' ? calculateRecommendation : null;
 function calculateRecommendationWithWeather(parkFactor, seasonHRs, last7HRs, pitcher, weatherScore = 0, gamesPlayed = 0) {
@@ -1695,7 +1695,7 @@ function calculateRecommendationWithWeather(parkFactor, seasonHRs, last7HRs, pit
     // ── Weather: minor nudge only (-1 / 0 / +1) ──────────────────────────────
     const weatherAdj = weatherScore >= 2 ? 1 : weatherScore <= -2 ? -1 : 0;
 
-    // Total: park(0-4) + power(0-4) + pace(0-4) + matchup(0-6) + weather(-1/0/+1) = max 19, clamp 17
+    // Total: park(0-4) + power(0-4) + pace(0-4) + matchup(0-6) + weather(-1/0/+1) = max 19, clamp 19
     const newScore = Math.min(17, Math.max(0,
         parkAdj + powerAdj + formAdj + matchupAdj + weatherAdj
     ));
