@@ -1696,7 +1696,7 @@ function calculateRecommendationWithWeather(parkFactor, seasonHRs, last7HRs, pit
     const weatherAdj = weatherScore >= 2 ? 1 : weatherScore <= -2 ? -1 : 0;
 
     // Total: park(0-4) + power(0-4) + pace(0-4) + matchup(0-6) + weather(-1/0/+1) = max 19, clamp 19
-    const newScore = Math.min(17, Math.max(0,
+    const newScore = Math.min(19, Math.max(0,
         parkAdj + powerAdj + formAdj + matchupAdj + weatherAdj
     ));
 
