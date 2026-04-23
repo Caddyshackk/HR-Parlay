@@ -1165,7 +1165,7 @@ class HRParlayApp {
             </div>
             <div class="best-score-col">
                 <div class="best-score">${rec.score}</div>
-                <div class="best-score-lbl">/ 17</div>
+                <div class="best-score-lbl">/ 20</div>
                 <div class="best-rec-badge ${rec.class}">${isSelected ? '✓ Added' : rec.label}</div>
             </div>
         </div>`;
@@ -1308,7 +1308,7 @@ class HRParlayApp {
                             </div>
                         </div>
                         <div class="parlay-item-right">
-                            ${rec ? `<span class="parlay-score">${rec.score}<span class="parlay-score-denom">/17</span></span>` : ''}
+                            ${rec ? `<span class="parlay-score">${rec.score}<span class="parlay-score-denom">/20</span></span>` : ''}
                             <button class="remove-btn" data-id="${player.id}-${player.betType || 'HR'}">✕</button>
                         </div>
                     </div>
@@ -1628,7 +1628,7 @@ class HRParlayApp {
 
 // Weather-aware wrapper for calculateRecommendation
 // Recommendation wrapper — preserves original scoring range, adds weather + relative form
-// Original parkFactors.js: park(0-4) + power(0-4) + form(0-4) + matchup(0-5) = 0-17
+// Original parkFactors.js: park(0-4) + power(0-4) + form(0-4) + matchup(0-5) = 0-20
 // Our additions: replace form with relative pace, add weather nudge
 const _originalCalcRec = typeof calculateRecommendation === 'function' ? calculateRecommendation : null;
 function calculateRecommendationWithWeather(parkFactor, seasonHRs, last7HRs, pitcher, weatherScore = 0, gamesPlayed = 0) {
