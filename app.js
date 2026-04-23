@@ -1200,26 +1200,42 @@ class HRParlayApp {
 
         // Find player from cached data
         let foundPlayer = null;
+        let foundGame = null;
         for (const game of this.games || []) {
             const homeCache = mlbApi._cache?.[`hitters_${game.teams.home.team.id}`]?.data || [];
             const awayCache = mlbApi._cache?.[`hitters_${game.teams.away.team.id}`]?.data || [];
             foundPlayer = [...homeCache, ...awayCache].find(p => p.id === playerId);
-            if (foundPlayer) break;
+            if (foundPlayer) { foundGame = game; break; }
         }
         if (!foundPlayer) return;
 
-        // Check if this exact player+betType combo already exists
         const existingIndex = this.currentParlay.findIndex(p => p.id === playerId && p.betType === betType);
         if (existingIndex > -1) {
-            // Remove it
             this.currentParlay.splice(existingIndex, 1);
         } else {
-            // Add with bet type
+            // Calculate recommendation at add time so it's available in parlay tab
+            let rec = foundPlayer.recommendation;
+            if (!rec && foundGame) {
+                const homeAbbr = foundGame.teams.home.team.abbreviation;
+                const parkInfo = getParkFactor(homeAbbr);
+                const weatherData = this.weatherCache[homeAbbr] || null;
+                const weatherScore = weatherData?.impact?.score ?? 0;
+                rec = calculateRecommendationWithWeather(
+                    parkInfo?.factor || 100,
+                    foundPlayer.seasonHRs,
+                    foundPlayer.last7HRs,
+                    foundPlayer.pitcher,
+                    weatherScore,
+                    foundPlayer.gamesPlayed || 0
+                );
+            }
             this.currentParlay.push({
                 ...foundPlayer,
                 betType,
                 game: gameLabel,
                 gameDate,
+                recommendation: rec || null,
+                parkFactor: foundGame ? getParkFactor(foundGame.teams.home.team.abbreviation)?.factor || 100 : (foundPlayer.parkFactor || 100),
             });
         }
 
@@ -1670,8 +1686,8 @@ function calculateRecommendationWithWeather(parkFactor, seasonHRs, last7HRs, pit
         // Platoon bonus: +1 if batter has handedness advantage
         const platoonBonus = pitcher.vsHandAdvantage ? 1 : 0;
 
-        // Score: ERA and HR9 weighted equally, max 9
-        matchupAdj = Math.min(9, eraScore + hr9Score + platoonBonus);
+        // Score: ERA and HR9 weighted equally, max 6 (keeps total spread meaningful)
+        matchupAdj = Math.min(6, eraScore + hr9Score + platoonBonus);
     } else {
         matchupAdj = breakdown.matchup || 0;
     }
@@ -1679,7 +1695,7 @@ function calculateRecommendationWithWeather(parkFactor, seasonHRs, last7HRs, pit
     // ── Weather: minor nudge only (-1 / 0 / +1) ──────────────────────────────
     const weatherAdj = weatherScore >= 2 ? 1 : weatherScore <= -2 ? -1 : 0;
 
-    // Total: park(0-4) + power(0-4) + pace(0-4) + matchup(0-9) + weather(-1/0/+1) = max 22, clamp 17
+    // Total: park(0-4) + power(0-4) + pace(0-4) + matchup(0-6) + weather(-1/0/+1) = max 19, clamp 17
     const newScore = Math.min(17, Math.max(0,
         parkAdj + powerAdj + formAdj + matchupAdj + weatherAdj
     ));
