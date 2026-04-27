@@ -471,8 +471,8 @@ class HRParlayApp {
         const weatherData = this.weatherCache[homeTeam] || null;
         const weatherScore = weatherData?.impact?.score ?? 0;
 
-        const processPlayers = (players, team, teamName) => {
-            const result = players.map(p => ({ ...p, team, teamName }))
+        const processPlayers = (players, team, teamName) =>
+            players.map(p => ({ ...p, team, teamName }))
                 .map(player => {
                     const rec = calculateRecommendationWithWeather(
                         parkFactor, player.seasonHRs, player.last7HRs,
@@ -483,12 +483,25 @@ class HRParlayApp {
                 .filter(p => p.recommendation)
                 .sort((a, b) => b.recommendation.score - a.recommendation.score);
 
-            // Store recommendations so addBet can find them
-            if (!this._recCache) this._recCache = {};
-            result.forEach(p => { this._recCache[p.id] = p.recommendation; });
+        const homeWithRecs = processPlayers(homePlayers, homeTeam, homeName);
+        const awayWithRecs = processPlayers(awayPlayers, awayTeam, awayName);
 
-            return result;
+        // Write recommendations back into mlbApi cache so addBet can find them
+        const writeRecs = (players, teamId) => {
+            const cached = mlbApi._cache?.[`hitters_${teamId}`];
+            if (!cached?.data) return;
+            players.forEach(p => {
+                const entry = cached.data.find(c => c.id === p.id);
+                if (entry) entry.recommendation = p.recommendation;
+            });
         };
+        writeRecs(homeWithRecs, homeTeamId);
+        writeRecs(awayWithRecs, awayTeamId);
+
+        if (homeWithRecs.length === 0 && awayWithRecs.length === 0) {
+            container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:1rem;">No picks available</p>';
+            return;
+        }
 
         const gpk = game.gamePk;
 
@@ -671,7 +684,7 @@ class HRParlayApp {
                     <div class="score-breakdown">
                         <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--text); display: flex; justify-content: space-between;">
                             <span>Confidence Score</span>
-                            <span style="color: var(--accent);">${rec.score}/19</span>
+                            <span style="color: var(--accent);">${rec.score}/17</span>
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; font-size: 0.75rem;">
                             <div>
@@ -1164,7 +1177,7 @@ class HRParlayApp {
             </div>
             <div class="best-score-col">
                 <div class="best-score">${rec.score}</div>
-                <div class="best-score-lbl">/ 19</div>
+                <div class="best-score-lbl">/ 17</div>
                 <div class="best-rec-badge ${rec.class}">${isSelected ? '✓ Added' : rec.label}</div>
             </div>
         </div>`;
@@ -1194,24 +1207,19 @@ class HRParlayApp {
         }
     }
 
-        addBet(event, playerId, betType, gameLabel, gameDate) {
-            event.stopPropagation();
+    addBet(event, playerId, betType, gameLabel, gameDate) {
+        event.stopPropagation();
 
-            // Find player from cached data
-            let foundPlayer = null;
-            let foundGame = null;
-            for (const game of this.games || []) {
-                const homeCache = mlbApi._cache?.[`hitters_${game.teams.home.team.id}`]?.data || [];
-                const awayCache = mlbApi._cache?.[`hitters_${game.teams.away.team.id}`]?.data || [];
-                foundPlayer = [...homeCache, ...awayCache].find(p => p.id === playerId);
-                if (foundPlayer) { foundGame = game; break; }
-            }
-
-            if (foundPlayer) {
-                foundPlayer = { ...foundPlayer, recommendation: this._recCache?.[playerId] || null };
-            }
-
-            if (!foundPlayer) return;
+        // Find player from cached data
+        let foundPlayer = null;
+        let foundGame = null;
+        for (const game of this.games || []) {
+            const homeCache = mlbApi._cache?.[`hitters_${game.teams.home.team.id}`]?.data || [];
+            const awayCache = mlbApi._cache?.[`hitters_${game.teams.away.team.id}`]?.data || [];
+            foundPlayer = [...homeCache, ...awayCache].find(p => p.id === playerId);
+            if (foundPlayer) { foundGame = game; break; }
+        }
+        if (!foundPlayer) return;
 
         const existingIndex = this.currentParlay.findIndex(p => p.id === playerId && p.betType === betType);
         if (existingIndex > -1) {
@@ -1312,7 +1320,7 @@ class HRParlayApp {
                             </div>
                         </div>
                         <div class="parlay-item-right">
-                            ${rec ? `<span class="parlay-score">${rec.score}<span class="parlay-score-denom">/19</span></span>` : ''}
+                            ${rec ? `<span class="parlay-score">${rec.score}<span class="parlay-score-denom">/17</span></span>` : ''}
                             <button class="remove-btn" data-id="${player.id}-${player.betType || 'HR'}">✕</button>
                         </div>
                     </div>
@@ -1632,7 +1640,7 @@ class HRParlayApp {
 
 // Weather-aware wrapper for calculateRecommendation
 // Recommendation wrapper — preserves original scoring range, adds weather + relative form
-// Original parkFactors.js: park(0-4) + power(0-4) + form(0-4) + matchup(0-5) = 0-19
+// Original parkFactors.js: park(0-4) + power(0-4) + form(0-4) + matchup(0-5) = 0-17
 // Our additions: replace form with relative pace, add weather nudge
 const _originalCalcRec = typeof calculateRecommendation === 'function' ? calculateRecommendation : null;
 function calculateRecommendationWithWeather(parkFactor, seasonHRs, last7HRs, pitcher, weatherScore = 0, gamesPlayed = 0) {
@@ -1699,8 +1707,8 @@ function calculateRecommendationWithWeather(parkFactor, seasonHRs, last7HRs, pit
     // ── Weather: minor nudge only (-1 / 0 / +1) ──────────────────────────────
     const weatherAdj = weatherScore >= 2 ? 1 : weatherScore <= -2 ? -1 : 0;
 
-    // Total: park(0-4) + power(0-4) + pace(0-4) + matchup(0-6) + weather(-1/0/+1) = max 19, clamp 19
-    const newScore = Math.min(19, Math.max(0,
+    // Total: park(0-4) + power(0-4) + pace(0-4) + matchup(0-6) + weather(-1/0/+1) = max 19, clamp 17
+    const newScore = Math.min(17, Math.max(0,
         parkAdj + powerAdj + formAdj + matchupAdj + weatherAdj
     ));
 
