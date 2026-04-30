@@ -1058,7 +1058,7 @@ class HRParlayApp {
             if (f.minScore > 0 && (p.recommendation?.score || 0) < f.minScore) return false;
             if (f.parkOnly && p.parkFactor <= 100) return false;
             if (f.qualityOnly && p.dataQuality !== 'high') return false;
-            if (f.softMatchup && (!p.pitcher || (typeof p.pitcher.era === 'number' && p.pitcher.era < 4.50))) return false;
+            if (f.softMatchup && (!p.pitcher || (typeof p.pitcher.era === 'number' && p.pitcher.era < 3.50))) return false;
             return true;
         });
 
