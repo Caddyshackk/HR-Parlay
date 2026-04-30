@@ -1044,7 +1044,7 @@ class HRParlayApp {
 
         // Store for filtering — reset filters on fresh load
         this._allBestPicks = allPicks;
-        this._bpFilters = { minScore: 0, parkOnly: false, qualityOnly: false, team: 'all' };
+        this._bpFilters = { minScore: 0, parkOnly: false, qualityOnly: false, softMatchup: false, team: 'all' };
         this.renderBestPicksList(container, allPicks);
     }
 
@@ -1058,11 +1058,12 @@ class HRParlayApp {
             if (f.minScore > 0 && (p.recommendation?.score || 0) < f.minScore) return false;
             if (f.parkOnly && p.parkFactor <= 100) return false;
             if (f.qualityOnly && p.dataQuality !== 'high') return false;
+            if (f.softMatchup && (!p.pitcher || (typeof p.pitcher.era === 'number' && p.pitcher.era < 4.50))) return false;
             return true;
         });
 
         const shown = filtered.slice(0, 30);
-        const activeFilters = [f.parkOnly, f.qualityOnly, f.minScore > 0, f.team !== 'all'].filter(Boolean).length;
+        const activeFilters = [f.parkOnly, f.qualityOnly, f.softMatchup, f.minScore > 0, f.team !== 'all'].filter(Boolean).length;
 
         container.innerHTML = `
             <div class="bp-header-row">
@@ -1099,6 +1100,14 @@ class HRParlayApp {
                     </button>
                 </div>
 
+                <!-- Soft matchup -->
+                <div class="bp-filter-group">
+                    <button class="bp-toggle ${f.softMatchup ? 'active' : ''}"
+                        onclick="app.setBpFilter('softMatchup', ${!f.softMatchup})">
+                        🎯 Soft Matchups (ERA 4.5+)
+                    </button>
+                </div>
+
                 <!-- Team filter -->
                 <div class="bp-filter-group">
                     <select class="team-filter-select" onchange="app.setBpFilter('team', this.value)">
@@ -1127,14 +1136,14 @@ class HRParlayApp {
     }
 
     setBpFilter(key, value) {
-        if (!this._bpFilters) this._bpFilters = { minScore: 0, parkOnly: false, qualityOnly: false, team: 'all' };
+        if (!this._bpFilters) this._bpFilters = { minScore: 0, parkOnly: false, qualityOnly: false, softMatchup: false, team: 'all' };
         this._bpFilters[key] = value;
         const container = document.getElementById('bestPicksContainer');
         if (container && this._allBestPicks) this.renderBestPicksList(container, this._allBestPicks);
     }
 
     clearBpFilters() {
-        this._bpFilters = { minScore: 0, parkOnly: false, qualityOnly: false, team: 'all' };
+        this._bpFilters = { minScore: 0, parkOnly: false, qualityOnly: false, softMatchup: false, team: 'all' };
         const container = document.getElementById('bestPicksContainer');
         if (container && this._allBestPicks) this.renderBestPicksList(container, this._allBestPicks);
     }
