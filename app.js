@@ -1104,7 +1104,7 @@ class HRParlayApp {
                 <div class="bp-filter-group">
                     <button class="bp-toggle ${f.softMatchup ? 'active' : ''}"
                         onclick="app.setBpFilter('softMatchup', ${!f.softMatchup})">
-                        🎯 Soft Matchups (ERA 4.5+)
+                        🎯 Soft Matchups (ERA 3.5+)
                     </button>
                 </div>
 
