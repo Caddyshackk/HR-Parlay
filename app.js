@@ -645,7 +645,7 @@ class HRParlayApp {
             <div class="player-info" style="flex:1;">
                 <div class="player-name">${player.name}</div>
                 <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">
-                    ${player.teamName} • ${player.hand === 'S' ? 'Switch' : player.hand === 'L' ? 'LHB' : 'RHB'}
+                    ${player.teamName} • ${player.hand === 'S' ? 'Switch' : player.hand === 'L' ? 'LHB' : player.hand === 'R' ? 'RHB' : ''}
                 </div>
 
                 <!-- Tabs -->
@@ -1104,7 +1104,7 @@ class HRParlayApp {
                 <div class="bp-filter-group">
                     <button class="bp-toggle ${f.softMatchup ? 'active' : ''}"
                         onclick="app.setBpFilter('softMatchup', ${!f.softMatchup})">
-                        🎯 Soft Matchups (ERA 3.5+)
+                        🎯 Soft Matchups (ERA 4.5+)
                     </button>
                 </div>
 

@@ -155,8 +155,8 @@ class MLBApi {
 
         const season = 2026;
         const endpoints = [
-            `${this.baseUrl}/teams/${teamId}/stats?stats=season&group=hitting&season=${season}`,
-            `${this.baseUrl}/stats?stats=season&group=hitting&season=${season}&sportId=1&teamId=${teamId}&limit=30`
+            `${this.baseUrl}/teams/${teamId}/stats?stats=season&group=hitting&season=${season}&hydrate=person`,
+            `${this.baseUrl}/stats?stats=season&group=hitting&season=${season}&sportId=1&teamId=${teamId}&limit=30&hydrate=person`
         ];
 
         for (const url of endpoints) {
@@ -198,7 +198,7 @@ class MLBApi {
                             xbh: (s.stat.doubles || 0) + (s.stat.triples || 0) + seasonHRs,
                             last7HRs: 0,
                             avg: s.stat.avg ? s.stat.avg.replace(/^0/, '') : '.000',
-                            hand: s.player.batSide?.code || 'R',
+                            hand: s.player.batSide?.code || s.person?.batSide?.code || null,
                             atBats,
                             gamesPlayed: gp,
                             obp: s.stat.obp ? s.stat.obp.replace(/^0/, '') : null,
