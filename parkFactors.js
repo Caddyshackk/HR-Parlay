@@ -142,7 +142,7 @@ function calculateRecommendation(parkFactor, seasonHRs, last7HRs, pitcher = null
     score = breakdown.park + breakdown.power + breakdown.form + breakdown.matchup;
     
     // Return tiered recommendation with enhanced visuals
-    if (score >= 12) {
+    if (score >= 15) {
         return { 
             class: 'elite', 
             label: '🚀 MUST PLAY', 
@@ -153,7 +153,7 @@ function calculateRecommendation(parkFactor, seasonHRs, last7HRs, pitcher = null
             confidence: 'ELITE'
         };
     }
-    if (score >= 10) {
+    if (score >= 12) {
         return { 
             class: 'top-pick', 
             label: '🔥 TOP PICK', 
@@ -164,7 +164,7 @@ function calculateRecommendation(parkFactor, seasonHRs, last7HRs, pitcher = null
             confidence: 'Very High'
         };
     }
-    if (score >= 7) {
+    if (score >= 9) {
         return { 
             class: 'strong', 
             label: '⭐ STRONG', 
@@ -175,7 +175,7 @@ function calculateRecommendation(parkFactor, seasonHRs, last7HRs, pitcher = null
             confidence: 'High'
         };
     }
-    if (score >= 5) {
+    if (score >= 7) {
         return { 
             class: 'good', 
             label: '✓ GOOD', 
@@ -186,7 +186,7 @@ function calculateRecommendation(parkFactor, seasonHRs, last7HRs, pitcher = null
             confidence: 'Moderate'
         };
     }
-    if (score >= 3) {
+    if (score >= 4) {
         return { 
             class: 'value', 
             label: '💎 VALUE', 
