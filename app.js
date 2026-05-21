@@ -1648,76 +1648,73 @@ class HRParlayApp {
 }
 
 // Weather-aware wrapper for calculateRecommendation
-// Recommendation wrapper — preserves original scoring range, adds weather + relative form
-// Original parkFactors.js: park(0-4) + power(0-4) + form(0-4) + matchup(0-5) = 0-17
-// Our additions: replace form with relative pace, add weather nudge
+// ── Scoring System ────────────────────────────────────────────────────────────
+// 17-20 = truly elite (rare), 13-16 = strong, 9-12 = average, <9 = weak
+// A league-average hitter vs league-average pitcher scores ~9
+//
 const _originalCalcRec = typeof calculateRecommendation === 'function' ? calculateRecommendation : null;
 function calculateRecommendationWithWeather(parkFactor, seasonHRs, last7HRs, pitcher, weatherScore = 0, gamesPlayed = 0) {
     const rec = _originalCalcRec
         ? _originalCalcRec(parkFactor, seasonHRs, last7HRs, pitcher)
         : { score: 0, label: 'N/A', class: '', breakdown: {}, bonuses: [] };
-
     if (!rec) return rec;
-
     const breakdown = rec.breakdown || {};
 
-    // ── Park: keep original score (0-4) — don't suppress it ──────────────────
-    const parkAdj = breakdown.park || 0;
+    // PARK (0-3): only elite parks hit 3. Avg park = 1, pitcher park = 0
+    let parkAdj = 0;
+    if      (parkFactor >= 115) parkAdj = 3;
+    else if (parkFactor >= 107) parkAdj = 2;
+    else if (parkFactor >= 100) parkAdj = 1;
+    else                        parkAdj = 0;
 
-    // ── Power: keep full weight (0-4) ────────────────────────────────────────
-    const powerAdj = breakdown.power || 0;
-
-    // ── Form: season HR pace vs league average ────────────────────────────────
-    // League average is ~0.14 HR/game (≈23 HRs over 162 games)
-    // This is always available and meaningful regardless of API lag
-    let formAdj = 0;
+    // POWER (0-4): projected full season HR pace. 45+ is elite
     const gp = Math.max(gamesPlayed || 1, 1);
-    const hrPace = seasonHRs / gp; // HRs per game this season
+    const projectedHRs = (seasonHRs / gp) * 162;
+    let powerAdj = 0;
+    if      (projectedHRs >= 45) powerAdj = 4;
+    else if (projectedHRs >= 35) powerAdj = 3;
+    else if (projectedHRs >= 25) powerAdj = 2;
+    else if (projectedHRs >= 15) powerAdj = 1;
+    else                         powerAdj = 0;
 
-    if      (hrPace >= 0.30) formAdj = 4;  // Elite: 49+ HR pace
-    else if (hrPace >= 0.22) formAdj = 3;  // Great: 36+ HR pace
-    else if (hrPace >= 0.15) formAdj = 2;  // Good:  24+ HR pace
-    else if (hrPace >= 0.09) formAdj = 1;  // Average: 15+ HR pace
-    else                     formAdj = 0;  // Below average
+    // PACE (0-4): current season HR rate
+    const rawPace = seasonHRs / gp;
+    let formAdj = 0;
+    if      (rawPace >= 0.28) formAdj = 4;
+    else if (rawPace >= 0.22) formAdj = 3;
+    else if (rawPace >= 0.15) formAdj = 2;
+    else if (rawPace >= 0.09) formAdj = 1;
+    else                      formAdj = 0;
 
-    // ── Matchup: direct pitcher scoring for full spread (0-9) ────────────────
-    // ERA + HR/9 scored separately then combined — gives real separation between
-    // a homer-prone pitcher and an ace
+    // MATCHUP (0-7): requires BOTH bad ERA and bad HR/9 to score high
+    // League avg pitcher ERA ~4.00, HR/9 ~1.25 → scores ~2 total
     let matchupAdj = 0;
     if (pitcher && typeof pitcher === 'object') {
-        const era = typeof pitcher.era === 'number' ? pitcher.era : 4.50;
+        const era = typeof pitcher.era === 'number' ? pitcher.era : 4.00;
         const hr9 = typeof pitcher.hr9 === 'number' ? pitcher.hr9 : 1.20;
 
-        // ERA score 0-4: higher ERA = easier matchup = higher score
         let eraScore = 0;
-        if      (era >= 5.50) eraScore = 4;
-        else if (era >= 4.75) eraScore = 3;
-        else if (era >= 4.00) eraScore = 2;
-        else if (era >= 3.25) eraScore = 1;
+        if      (era >= 6.00) eraScore = 3;
+        else if (era >= 5.00) eraScore = 2;
+        else if (era >= 4.25) eraScore = 1;
         else                  eraScore = 0;
 
-        // HR/9 score 0-4: higher HR/9 = more homers allowed = better matchup
         let hr9Score = 0;
-        if      (hr9 >= 2.00) hr9Score = 4;
-        else if (hr9 >= 1.50) hr9Score = 3;
-        else if (hr9 >= 1.10) hr9Score = 2;
-        else if (hr9 >= 0.75) hr9Score = 1;
+        if      (hr9 >= 1.80) hr9Score = 3;
+        else if (hr9 >= 1.40) hr9Score = 2;
+        else if (hr9 >= 1.10) hr9Score = 1;
         else                  hr9Score = 0;
 
-        // Platoon bonus: +1 if batter has handedness advantage
         const platoonBonus = pitcher.vsHandAdvantage ? 1 : 0;
-
-        // Score: ERA and HR9 weighted equally, max 6 (keeps total spread meaningful)
-        matchupAdj = Math.min(6, eraScore + hr9Score + platoonBonus);
+        matchupAdj = Math.min(7, eraScore + hr9Score + platoonBonus);
     } else {
-        matchupAdj = breakdown.matchup || 0;
+        matchupAdj = 2;
     }
 
-    // ── Weather: minor nudge only (-1 / 0 / +1) ──────────────────────────────
-    const weatherAdj = weatherScore >= 2 ? 1 : weatherScore <= -2 ? -1 : 0;
+    // WEATHER (-1/0/+1): minor nudge, only extreme conditions move it
+    const weatherAdj = weatherScore >= 3 ? 1 : weatherScore <= -3 ? -1 : 0;
 
-    // Total: park(0-4) + power(0-4) + pace(0-4) + matchup(0-6) + weather(-1/0/+1) = max 19, clamp 17
-    const newScore = Math.min(17, Math.max(0,
+    const newScore = Math.min(20, Math.max(0,
         parkAdj + powerAdj + formAdj + matchupAdj + weatherAdj
     ));
 
